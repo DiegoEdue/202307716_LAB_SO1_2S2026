@@ -44,6 +44,14 @@ sudo ufw allow in on virbr0 to any port 53
 virsh net-dumpxml default | grep -A2 '<ip'
 ```
 
+### 1.1 Comandos para ver estado de máquinas virtuales
+
+```bash
+virsh list --all           # Lista todas las VMs
+virsh start <nombre>       # Inicia una VM
+virsh shutdown <nombre>    # Apaga una VM
+```
+
 ## 2. Creación de VMs
 
 Luego de instalar virt-manager, hay que descargar la ISO de Ubuntu Server 24.04.4. Luego para crear las máquinas virtuales fueron necesarios los siquientes pasos:
