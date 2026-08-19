@@ -1,7 +1,7 @@
 # Proyecto 1 - Sistemas Operativos 1
 
-| Nombre | Carnet |
-|---| ---|
+| Nombre                       | Carnet    |
+|--------                      | -------   |
 | Diego Eduardo España Vásquez | 202307716 |
 
 ## 1. Instalación de Virt-Manager
@@ -194,4 +194,192 @@ sudo adduser diegovm3 docker
 
 # Reiniciar paquetes del sistema
 sudo reboot
+```
+
+## 7. Construcción de imagenes en VM1 y VM2
+
+### 7.1 VM1
+
+```bash
+# Clonar repositorio
+git clone https://github.com/DiegoEdueEntrar en la carpeta de API 1
+cd# Contruir contenedor
+sudo nerdctl build -t api1-202307716:v1 .
+
+# Entrar en la carpeta de API 2
+cd ../api2
+
+# Consstruir contenedor
+sudo nerdctl build -t api2-202307716:v1 .
+
+# Verificar que ambas imágenes existan
+sudo nerdctl images
+```
+
+### 7.2 VM2
+
+```bash
+# Clonar repositorio
+git clone https://github.com/DiegoEdueEntrar en la carpeta de API 3
+cd# Contruir contenedor
+podman build -t api3-202307716:v1 .
+
+# Verificar que la imagen exista
+podman images
+```
+
+## 8. Correr los contenedores de manera local en VM1 y VM2
+
+### 8.1 VM1
+
+```bash
+# Activación de buildkit.service
+sudo cp /usr/local/lib/systemd/system/buildkit.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now buildkit
+sudo systemctl status buildkit
+
+# Correr en segundo plano, con el nombre api1, en el puerto 8081 y reinicio automático
+sudo nerdctl run -d --name api1 -p 8081:8081 --restart always api1-202307716:v1
+
+# Correr en segundo plano, con el nombre api1, en el puerto 8081 y reinicio automático
+sudo nerdctl run -d --name api2 -p 8082:8082 --restart always api2-202307716:v1
+
+# Listar los contenedores que están corriendo
+sudo nerdctl ps
+```
+
+### 8.2 VM2
+
+```bash
+# Correr en segundo plano, con el nombre api1, en el puerto 8081 y reinicio automático
+podman run -d --name api3 -p 8083:8083 --restart always api3-202307716:v1
+
+# Listar contenedor corriendo
+podman ps
+```
+
+## 9. Prueba local de estado
+
+### 9.1 VM1
+
+```bash
+# Comando para probar api1
+curl localhost:8081/health
+
+# Comando para probar api2
+curl localhost:8082/health
+```
+
+### 9.2 VM2
+
+```bash
+# Comando para probar api3
+curl localhost:8083/
+```
+
+## 10. Expasión de de espacio en disco
+
+Luego de crear los contenedores y correrlos, la memoria asignada en un principio se quedó corta. Entonces fue necesario añadir más a la VM1 y VM3.
+
+### 10.1 VM1
+
+```bash
+# Apaga la VM
+sudo virsh shutdown vm1
+
+# Verificar que esté apagada
+sudo virsh list --all
+
+# Expande el disco qcow2
+sudo qemu-img resize /var/lib/libvirt/images/VM1.qcow2 +3G
+
+# Encender la VM
+sudo virsh start vm1
+```
+
+### 10.2 VM3
+
+```bash
+# Apaga la VM
+sudo virsh shutdown vm3
+
+# Verificar que esté apagada
+sudo virsh list --all
+
+# Expande el disco qcow2
+sudo qemu-img resize /var/lib/libvirt/images/VM3.qcow2 +7G
+
+# Encender la VM
+sudo virsh start vm3
+```
+
+### 10.3 Expansión de partición y reonocimiento de filesystem
+
+Este procedimiento se debe de realizar dentr de cada una de las VMs que se les exapandió el espacio en disco.
+
+```bash
+# Confirma que el disco ya creció a nivel de bloque
+sudo lsblk
+
+# Expandir la partición física
+sudo growpart /dev/vda 3
+
+# Expandir el physical volume de LVM
+sudo pvresize /dev/vda3
+
+# Expandir el logical volume para usar todo el espacio libre
+sudo lvextend -l +100%FREE /dev/mapper/ubuntu--vg-ubuntu--lv
+
+# Expandir el filesystem (ext4) para ocupar el nuevo tamaño del LV
+sudo resize2fs /dev/mapper/ubuntu--vg-ubuntu--lv
+
+# Verifica
+df -h
+```
+
+## 11. Comunicación entre API1 y API2
+
+```bash
+# Comando para que api1 llame a api2
+curl localhost:8081/api1/202307716/call-api2
+
+# Comando para que api2 llame a api1
+curl localhost:8082/api2/202307716/call-api1
+```
+
+## 12. Instalación y configuración de Zot en VM3
+
+Crear directorio para persistencia de datos.
+
+```bash
+mkdir -p ~/zot/data             
+```
+
+Ejecutar el siguiente comando para iniciar un registro Zot en segundo plano, exponiendo el puerto 5000, con nombre zot, reinicio automático y creación de un volumen para persistir los datos.
+
+```bash
+docker run -d -p 5000:5000 -v ~/zot/data:/var/lib/registry --restart always --name zot ghcr.io/project-zotzot-linux-amd64:latest
+```
+
+### 12.1 Configuración de Docker en Host
+
+Editar configuración de Docker:
+
+```bash
+sudo nano /etc/docker/daemon.json
+```
+
+Agregar el conteniedo del archivo:
+
+```bash
+{
+    "insecure-registries": ["192.168.122.13:5000"]
+}
+```
+
+Reiniciar Docker para aplicar los cambios:
+
+```bash
+sudo systemctl restart docker
 ```
