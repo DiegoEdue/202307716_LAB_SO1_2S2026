@@ -383,3 +383,144 @@ Reiniciar Docker para aplicar los cambios:
 ```bash
 sudo systemctl restart docker
 ```
+
+## 13. Push de imágenes de VM1 y VM2 hacia el registro Zot en VM3
+
+### 13.1 VM1 con Containerd + nerdctl
+
+Etiquetar la imagen para el registro privado:
+
+```bash
+# API1
+sudo nerdctl tag api1-202307716:v1 192.168.122.13:5000/api1-202307716:v1
+
+# API2
+sudo nerdctl tag api2-202307716:v1 192.168.122.13:5000/api2-202307716:v1
+```
+
+Subir la imagen al registro Zot con bandera para permitir registro inseguro:
+
+```bash
+# Push API1
+sudo nerdctl push --insecure-registry 192.168.122.13:5000/api1-202307716:v1
+
+# Push API2
+sudo nerdctl push --insecure-registry 192.168.122.13:5000/api1-202307716:v1
+```
+
+### 13.2 VM2 con Podman
+
+Etiquetar la imagen para el registro privado:
+
+```bash
+# API3
+podman tag api3-202307716:v1 192.168.122.13:5000/api3-202307716:v1
+
+# Configuración de registro como inseguro
+sudo tee -a /etc/containers/registries.conf << 'EOF'
+
+[[registry]]
+location = "192.168.122.13:5000"
+insecure = true
+EOF
+```
+
+Subir la imagen al registro Zot:
+
+```bash
+# Push API1
+podman push 192.168.122.13:5000/api3-202307716:v1
+```
+
+### 13.3 Verificación de cátalogo de Zot
+
+Ejecutar el siguiente comando desde cualquier VM o incluso desde el Host:
+
+```bash
+curl http://192.168.122.13:5000/v2/_catalog
+```
+
+Si los contenedores se subieron a Zot deben de listarse como en la siguiente imagen:
+
+![Catalogo](./img/catalogo.png)
+
+## 14. Evidencias
+
+Probar los siguientes comandos desde el host o cualquier vm que tenga la imagen y el contenedor corriendo:
+
+```bash
+curl http://192.168.122.11:8081/api1/202307716/call-api2
+curl http://192.168.122.11:8081/api1/202307716/call-api3
+curl http://192.168.122.11:8082/api2/202307716/call-api1
+curl http://192.168.122.11:8082/api2/202307716/call-api3
+curl http://192.168.122.12:8083/api3/202307716/call-api1
+curl http://192.168.122.12:8083/api3/202307716/call-api2
+```
+
+![Pruebas](./img/pruebas.png)
+
+Comandos para verificar el estado de cda VM:
+
+```bash
+curl http://192.168.122.11:8081/api1/health
+curl http://192.168.122.11:8082/api2/health
+curl http://192.168.122.12:8083/api3/health
+```
+
+![Health](./img/health.png)
+
+Comandos para verificar errores:
+
+```bash
+# En VM2
+podman stop api3
+
+# Desde VM1
+curl http://192.168.122.11:8081/api1/202307716/call-api3
+
+# Volver a levantar el contenedor
+podman start api3
+```
+
+![Error](./img/error.png)
+
+Hacemos pull de las imágenes en VM1:
+
+```bash
+# Pull en VM1 de API3
+sudo nerdctl pull 192.168.122.13:5000/api3-202307716:v1
+
+# Listar imágenes
+sudo nerdctl images
+```
+
+Hacemos pull de las imágenes en VM2:
+
+```bash
+# Pull en VM2 de API1
+podman pull 192.168.122.13:5000/api1-202307716:v1
+
+# Pull en VM2 de API2
+podman pull 192.168.122.13:5000/api2-202307716:v1
+
+# Listar imágenes
+podman images
+```
+
+![Pull](./img/pull.png)
+
+Comprobar que la imagen funciona en la VM2.
+
+```bash
+# Pull en VM2 de API1
+podman pull 192.168.122.13:5000/api2-202307716:v1
+
+# Vemos el estado
+curl http://192.168.122.11:8082/api2/health
+```
+
+![Pull2](./img/pull2.png)
+
+## 15. Diagrama de arquitectura
+
+![Diagrama](./img/diagrama.png)
