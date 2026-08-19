@@ -1,4 +1,4 @@
-FROM golang:1.26-alpine AS builder
+FROM docker.io/library/golang:1.26-alpine AS builder
 WORKDIR /app
 
 COPY go.mod ./
@@ -6,7 +6,7 @@ COPY main.go ./
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o main .
 
-FROM alpine:latest
+FROM docker.io/library/alpine:latest
 WORKDIR /app
 
 COPY --from=builder /app/main .
