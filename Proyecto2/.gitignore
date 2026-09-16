@@ -1,0 +1,9 @@
+# Build artifacts del modulo kernel
+modulo/*.o
+modulo/*.ko
+modulo/*.mod
+modulo/*.mod.c
+modulo/*.symvers
+modulo/*.order
+modulo/.*.cmd
+modulo/.tmp_versions/
