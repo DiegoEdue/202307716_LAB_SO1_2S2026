@@ -7,3 +7,15 @@ modulo/*.symvers
 modulo/*.order
 modulo/.*.cmd
 modulo/.tmp_versions/
+
+# Data grafana-valkey
+grafana-valkey/grafana-data/
+grafana-valkey/valkey-data/
+
+# Data daemon
+daemon/daemon-bin
+daemon/ebpfkill_bpfel.o
+daemon/ebpfkill_bpfeb.o
+daemon/ebpfkill_bpfeb.go
+daemon/ebpfkill_bpfel.go
+daemon/vmlinux.h
