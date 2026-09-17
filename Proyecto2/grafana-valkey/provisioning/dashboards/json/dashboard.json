@@ -1,341 +1,622 @@
 {
-  "id": null,
-  "uid": "proyecto2-so1",
-  "title": "Panel de Contenedores por 202307716",
-  "tags": [
-    "proyecto2",
-    "so1"
-  ],
-  "timezone": "browser",
-  "schemaVersion": 39,
-  "version": 1,
-  "refresh": "10s",
-  "time": {
-    "from": "now-1h",
-    "to": "now"
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
   },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
   "panels": [
     {
-      "id": 1,
-      "title": "Total RAM",
-      "type": "stat",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "valkey"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "blue",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "kbytes"
+        },
+        "overrides": []
+      },
       "gridPos": {
         "h": 5,
         "w": 8,
         "x": 0,
         "y": 0
       },
-      "datasource": {
-        "type": "redis-datasource",
-        "uid": "valkey"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "redis-datasource",
-            "uid": "valkey"
-          },
-          "type": "cli",
-          "query": "GET ram:total"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "kbytes",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "blue"
-          }
-        },
-        "overrides": []
-      },
+      "id": 1,
       "options": {
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "auto",
-        "textMode": "value_and_name"
-      }
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "valkey"
+          },
+          "query": "GET ram:total",
+          "refId": "A",
+          "type": "cli"
+        }
+      ],
+      "title": "Total RAM",
+      "type": "stat"
     },
     {
-      "id": 2,
-      "title": "Free RAM",
-      "type": "stat",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "valkey"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "green",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "kbytes"
+        },
+        "overrides": []
+      },
       "gridPos": {
         "h": 5,
         "w": 8,
         "x": 8,
         "y": 0
       },
-      "datasource": {
-        "type": "redis-datasource",
-        "uid": "valkey"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "redis-datasource",
-            "uid": "valkey"
-          },
-          "type": "cli",
-          "query": "GET ram:free"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "kbytes",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "green"
-          }
-        },
-        "overrides": []
-      },
+      "id": 2,
       "options": {
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "auto",
-        "textMode": "value_and_name"
-      }
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "valkey"
+          },
+          "query": "GET ram:free",
+          "refId": "A",
+          "type": "cli"
+        }
+      ],
+      "title": "Free RAM",
+      "type": "stat"
     },
     {
-      "id": 3,
-      "title": "Total Contenedores Eliminados",
-      "type": "stat",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "valkey"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "red",
+            "mode": "fixed"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
       "gridPos": {
         "h": 5,
         "w": 8,
         "x": 16,
         "y": 0
       },
-      "datasource": {
-        "type": "redis-datasource",
-        "uid": "valkey"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "redis-datasource",
-            "uid": "valkey"
-          },
-          "type": "cli",
-          "query": "GET containers:deleted:count"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "red"
-          }
-        },
-        "overrides": []
-      },
+      "id": 3,
       "options": {
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "auto",
-        "textMode": "value_and_name"
-      }
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "valkey"
+          },
+          "query": "GET containers:deleted:count",
+          "refId": "A",
+          "type": "cli"
+        }
+      ],
+      "title": "Total Contenedores Eliminados",
+      "type": "stat"
     },
     {
-      "id": 4,
-      "title": "Gráfica de Uso de RAM en el Tiempo",
-      "type": "timeseries",
+      "datasource": {
+        "default": true,
+        "type": "redis-datasource",
+        "uid": "valkey"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "yellow",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "kbytes"
+        },
+        "overrides": []
+      },
       "gridPos": {
         "h": 8,
         "w": 24,
         "x": 0,
         "y": 5
       },
-      "datasource": {
-        "type": "redis-datasource",
-        "uid": "valkey"
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
       },
       "targets": [
         {
-          "refId": "A",
+          "aggregation": "avg",
+          "command": "zrange",
           "datasource": {
             "type": "redis-datasource",
             "uid": "valkey"
           },
-          "type": "timeSeries",
-          "query": "ram:history",
           "keyName": "ram:history",
           "legend": "RAM usada (KB)",
-          "aggregation": "avg"
+          "max": "-1",
+          "min": "0",
+          "query": "",
+          "refId": "A",
+          "type": "command",
+          "zrangeQuery": ""
         }
       ],
+      "title": "Gráfica de Uso de RAM en el Tiempo",
+      "transformations": [
+        {
+          "id": "reduce",
+          "options": {
+            "includeTimeField": false,
+            "mode": "seriesToRows",
+            "reducers": [
+              "lastNotNull"
+            ]
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "destinationType": "number",
+                "targetField": "Field"
+              },
+              {
+                "destinationType": "time",
+                "targetField": "Last *"
+              }
+            ],
+            "fields": {}
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "default": true,
+        "type": "redis-datasource",
+        "uid": "valkey"
+      },
       "fieldConfig": {
         "defaults": {
-          "unit": "kbytes",
           "color": {
-            "mode": "fixed",
-            "fixedColor": "yellow"
+            "mode": "palette-classic"
           },
           "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 15,
-            "drawStyle": "line"
-          }
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "kbytes"
         },
         "overrides": []
       },
-      "options": {
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom"
-        },
-        "tooltip": {
-          "mode": "single"
-        }
-      }
-    },
-    {
-      "id": 5,
-      "title": "Top 5 Contenedores por Consumo de RAM",
-      "type": "piechart",
       "gridPos": {
         "h": 8,
         "w": 8,
         "x": 0,
         "y": 13
       },
-      "datasource": {
-        "type": "redis-datasource",
-        "uid": "valkey"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "redis-datasource",
-            "uid": "valkey"
-          },
-          "type": "zrevrange",
-          "query": "top:ram",
-          "keyName": "top:ram",
-          "start": "0",
-          "end": "4",
-          "withScores": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "kbytes"
-        },
-        "overrides": []
-      },
+      "id": 5,
       "options": {
+        "displayLabels": [
+          "name"
+        ],
         "legend": {
           "displayMode": "table",
           "placement": "right",
+          "showLegend": true,
           "values": [
             "value",
             "percent"
           ]
         },
         "pieType": "pie",
-        "displayLabels": [
-          "name"
-        ]
-      }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "command": "zrange",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "valkey"
+          },
+          "end": "4",
+          "keyName": "top:ram",
+          "max": "4",
+          "min": "0",
+          "query": "",
+          "refId": "A",
+          "start": "0",
+          "type": "command",
+          "withScores": true,
+          "zrangeQuery": ""
+        }
+      ],
+      "title": "Top 5 Contenedores por Consumo de RAM",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(.{6}).*",
+            "renamePattern": "$1..."
+          }
+        }
+      ],
+      "type": "piechart"
     },
     {
-      "id": 6,
-      "title": "Top 5 Contenedores por Consumo de CPU",
-      "type": "piechart",
+      "datasource": {
+        "default": true,
+        "type": "redis-datasource",
+        "uid": "valkey"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "percent"
+        },
+        "overrides": []
+      },
       "gridPos": {
         "h": 8,
         "w": 8,
         "x": 8,
         "y": 13
       },
-      "datasource": {
-        "type": "redis-datasource",
-        "uid": "valkey"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "redis-datasource",
-            "uid": "valkey"
-          },
-          "type": "zrevrange",
-          "query": "top:cpu",
-          "keyName": "top:cpu",
-          "start": "0",
-          "end": "4",
-          "withScores": true
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent"
-        },
-        "overrides": []
-      },
+      "id": 6,
       "options": {
+        "displayLabels": [
+          "name"
+        ],
         "legend": {
           "displayMode": "table",
           "placement": "right",
+          "showLegend": true,
           "values": [
             "value",
             "percent"
           ]
         },
         "pieType": "pie",
-        "displayLabels": [
-          "name"
-        ]
-      }
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "command": "zrange",
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "valkey"
+          },
+          "end": "4",
+          "keyName": "top:cpu",
+          "max": "4",
+          "min": "0",
+          "query": "",
+          "refId": "A",
+          "start": "0",
+          "type": "command",
+          "withScores": true,
+          "zrangeQuery": ""
+        }
+      ],
+      "title": "Top 5 Contenedores por Consumo de CPU",
+      "transformations": [
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^(.{6}).*",
+            "renamePattern": "$1..."
+          }
+        }
+      ],
+      "type": "piechart"
     },
     {
-      "id": 7,
-      "title": "eBPF Event Counter",
-      "type": "stat",
+      "datasource": {
+        "type": "redis-datasource",
+        "uid": "valkey"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "purple",
+            "mode": "fixed"
+          },
+          "displayName": "TOTAL EVENTS",
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
       "gridPos": {
         "h": 8,
         "w": 8,
         "x": 16,
         "y": 13
       },
-      "datasource": {
-        "type": "redis-datasource",
-        "uid": "valkey"
-      },
-      "targets": [
-        {
-          "refId": "A",
-          "datasource": {
-            "type": "redis-datasource",
-            "uid": "valkey"
-          },
-          "type": "cli",
-          "query": "GET ebpf:events:count"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short",
-          "displayName": "TOTAL EVENTS",
-          "color": {
-            "mode": "fixed",
-            "fixedColor": "purple"
-          }
-        },
-        "overrides": []
-      },
+      "id": 7,
       "options": {
         "colorMode": "background",
         "graphMode": "none",
         "justifyMode": "auto",
-        "textMode": "value_and_name"
-      }
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "11.2.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "redis-datasource",
+            "uid": "valkey"
+          },
+          "query": "GET ebpf:events:count",
+          "refId": "A",
+          "type": "cli"
+        }
+      ],
+      "title": "eBPF Event Counter",
+      "type": "stat"
     }
-  ]
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": [
+    "proyecto2",
+    "so1"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Panel de Contenedores por 202307716",
+  "uid": "proyecto2-so1",
+  "version": 4,
+  "weekStart": ""
 }
