@@ -1,0 +1,15 @@
+[Unit]
+Description=Proyecto 2 SO1 - Daemon gestionador de contenedores
+After=docker.service network-online.target
+Wants=docker.service network-online.target
+
+[Service]
+Type=simple
+# start.sh reemplaza __WORKDIR__ por la ruta absoluta real de daemon/ en tu VM.
+WorkingDirectory=__WORKDIR__
+ExecStart=__WORKDIR__/daemon-bin
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
