@@ -26,7 +26,7 @@ MODULE_VERSION("1.0");
 
 #define MAX_CMDLINE_LENGTH 256
 #define SHIM_COMM          "containerd-shim"
-#define CONTAINER_ID_LEN   65
+#define CONTAINER_ID_LEN   72
 
 static char *get_process_cmdline(struct task_struct *task)
 {
@@ -99,6 +99,42 @@ static int extract_container_id(const char *cmdline, char *out, size_t out_len)
     return 1;
 }
 
+/* Escapa un string arbitrario, antes de meterlo en el JSON. Sin esto, 
+   cualquier proceso del sistema con uno de esos
+ * caracteres rompe el archivo /proc completo. */
+static void seq_print_json_escaped(struct seq_file *m, const char *s)
+{
+    if (!s) {
+        seq_printf(m, "N/A");
+        return;
+    }
+    for (; *s; s++) {
+        unsigned char c = *s;
+        switch (c) {
+        case '"':
+            seq_printf(m, "\\\"");
+            break;
+        case '\\':
+            seq_printf(m, "\\\\");
+            break;
+        case '\n':
+            seq_printf(m, "\\n");
+            break;
+        case '\r':
+            seq_printf(m, "\\r");
+            break;
+        case '\t':
+            seq_printf(m, "\\t");
+            break;
+        default:
+            if (c < 0x20)
+                seq_printf(m, "\\u%04x", c);
+            else
+                seq_putc(m, c);
+        }
+    }
+}
+
 static int sysinfo_show(struct seq_file *m, void *v)
 {
     struct sysinfo si;
@@ -163,12 +199,20 @@ static int sysinfo_show(struct seq_file *m, void *v)
 
         seq_printf(m, "     {\n");
         seq_printf(m, "        \"PID\": %d,\n", task->pid);
-        seq_printf(m, "        \"Name\": \"%s\",\n", task->comm);
 
-        if (is_container)
-            seq_printf(m, "        \"ContainerID\": \"%s\",\n", container_id);
-        else
-            seq_printf(m, "        \"Cmdline\": \"%s\",\n", own_cmdline ? own_cmdline : "N/A");
+        seq_printf(m, "        \"Name\": \"");
+        seq_print_json_escaped(m, task->comm);
+        seq_printf(m, "\",\n");
+
+        if (is_container) {
+            seq_printf(m, "        \"ContainerID\": \"");
+            seq_print_json_escaped(m, container_id);
+            seq_printf(m, "\",\n");
+        } else {
+            seq_printf(m, "        \"Cmdline\": \"");
+            seq_print_json_escaped(m, own_cmdline);
+            seq_printf(m, "\",\n");
+        }
 
         seq_printf(m, "        \"VSZ_KB\": %lu,\n", vsz);
         seq_printf(m, "        \"RSS_KB\": %lu,\n", rss);

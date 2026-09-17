@@ -9,6 +9,8 @@ PWD := $(shell pwd)
 all:
 	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
+load: all
+	@lsmod | grep -q continfo_pr2_so1_202307716 || sudo insmod continfo_pr2_so1_202307716.ko
 # Limpieza de archivos generados por la compilación
 clean:
 	$(MAKE) -C $(KDIR) M=$(PWD) clean
