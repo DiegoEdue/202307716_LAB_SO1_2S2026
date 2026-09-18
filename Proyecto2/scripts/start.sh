@@ -8,11 +8,7 @@ CARNET="202307716"
 
 cd "$SCRIPT_DIR"
 
-
-echo "-----[1] Modulo de kernel-----"
-bash scripts/cargar_modulo.sh
-
-echo "-----[2] Imagen intrusa-----"
+echo "-----[1] Imagen intrusa-----"
 if ! docker image inspect "intruso-${CARNET}:latest" >/dev/null 2>&1; then
     echo "[INFO] Construyendo intruso-${CARNET}:latest..."
     docker build -t "intruso-${CARNET}:latest" scripts/
@@ -20,7 +16,7 @@ else
     echo "[INFO] intruso-${CARNET}:latest ya existe, se omite el build."
 fi
 
-echo "-----[3] Sonda eBPF-----"
+echo "-----[2] Sonda eBPF-----"
 if [ ! -f daemon/ebpfkill_bpfel.go ]; then
     echo "[INFO] Primera vez: instalando dependencias y generando bindings..."
     command -v clang >/dev/null 2>&1 || sudo apt-get install -y clang libbpf-dev "linux-headers-$(uname -r)"
@@ -40,14 +36,14 @@ else
     echo "[INFO] Bindings de eBPF ya generados, se omite."
 fi
 
-echo "-----[4] Compilando daemon-----"
+echo "-----[3] Compilando daemon-----"
 if ! (cd daemon && go build -o daemon-bin .); then
     echo "[ERROR] No se pudo compilar el daemon"
     exit 1
 fi
 echo "Daemon compilado correctamente"
 
-echo "-----[5] Grafana y Valkey-----"
+echo "-----[4] Grafana y Valkey-----"
 cd "$SCRIPT_DIR/grafana-valkey"
 
 if docker ps -a --format '{{.Names}}' | grep -qx "valkey-db"; then
@@ -58,7 +54,7 @@ fi
 docker compose up -d
 cd "$SCRIPT_DIR"
 
-echo "-----[6] Servicio systemd-----"
+echo "-----[5] Servicio systemd-----"
 if [ ! -f "/etc/systemd/system/${SERVICE_NAME}.service" ]; then
     echo "[INFO] Instalando unidad systemd (primera vez)..."
     if [ ! -f daemon/proyecto2-daemon.service.template ]; then

@@ -490,9 +490,10 @@ func main() {
 
 	// El modulo de kernel se carga con `make load` desde modulo/
 	if out, err := exec.Command("make", "-C", "../modulo", "load").CombinedOutput(); err != nil {
-		log.Printf("[daemon] no se pudo cargar el modulo de kernel: %v\n%s", err, out)
+	log.Printf("[daemon] no se pudo cargar el modulo de kernel: %v\n%s", err, out)
+	} else {
+		log.Println("[daemon] modulo de kernel cargado.")
 	}
-	log.Println("[daemon] modulo de kernel cargado.")
 
 	mon, err := newEBPFMonitor()
 	if err != nil {
