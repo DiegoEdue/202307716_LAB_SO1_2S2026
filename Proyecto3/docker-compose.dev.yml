@@ -1,4 +1,27 @@
 services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: mumn
+      RABBITMQ_DEFAULT_PASS: mumn123
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  go-server-svc:
+    build: ./go-grpc-server
+    environment:
+      MODE: server
+
+  go-writer:
+    build: ./go-grpc-server
+    network_mode: "service:go-server-svc"
+    depends_on: [rabbitmq]
+    restart: unless-stopped
+    environment:
+      MODE: writer
+      RABBITMQ_URL: amqp://mumn:mumn123@rabbitmq:5672/
+
   go-rest:
     build: ./go-api
     environment:
@@ -19,3 +42,15 @@ services:
     environment:
       GO_API_URL: http://go-rest:8080/report
       CARNET: "202307716"
+  valkey:
+    image: valkey/valkey:8
+    ports: ["6379:6379"]
+  go-consumer:
+    build: ./go-consumer
+    depends_on: [rabbitmq, valkey]
+    restart: unless-stopped
+    environment:
+      RABBITMQ_URL: amqp://mumn:mumn123@rabbitmq:5672/
+      QUEUE: reports
+      VALKEY_ADDR: valkey:6379
+      ASSIGNED_COUNTRY: esp

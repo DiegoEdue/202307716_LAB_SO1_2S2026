@@ -44,7 +44,7 @@ func main() {
 // Contenedor 1: API REST. Recibe de Rust y reenvia al contenedor gRPC client.
 func runREST() {
 	target := getenv("CLIENT_URL", "http://127.0.0.1:9090/send")
-	hc := &http.Client{Timeout: 10 * time.Second}
+	hc := &http.Client{Timeout: 10 * time.Second, Transport: &http.Transport{MaxIdleConnsPerHost: 100}}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +72,9 @@ func runREST() {
 // Contenedor 2: cliente gRPC. Solo escucha en localhost del pod.
 func runClient() {
 	addr := getenv("GRPC_SERVER_ADDR", "go-server-svc:50051")
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("dns:///"+addr,
+	grpc.WithTransportCredentials(insecure.NewCredentials()),
+	grpc.WithDefaultServiceConfig(`{"loadBalancingConfig":[{"round_robin":{}}]}`))
 	if err != nil {
 		log.Fatalf("no se pudo crear el cliente gRPC: %v", err)
 	}

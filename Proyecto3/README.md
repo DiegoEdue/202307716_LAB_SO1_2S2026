@@ -26,7 +26,13 @@ Proyecto3/
 │   ├── Dockerfile
 │   └── go.mod
 ├── go-consumer/
+│   ├── main.go
+│   ├── Dockerfile
+│   └── go.mod
 ├── go-grpc-server/
+│   ├── main.go
+│   ├── Dockerfile
+│   └── go.mod
 ├── k8s/
 │   ├── 01-namespace.yaml
 │   ├── 10-rabbitmq.yaml
@@ -221,7 +227,7 @@ Luego creamos el `Dockerfile`.
 
 ### 3.3 Prueba local con Docker Compose
 
-En la raíz del proyecto creamos un archivo docker-compose.dev.yml para poder hacer pruebas de manera local. Hace que los dos contenedores compartan red, como si fuera un pod de Kubernetes.
+En la raíz del proyecto creamos un archivo `docker-compose.dev.yml` para poder hacer pruebas de manera local. Hace que los dos contenedores compartan red, como si fuera un pod de Kubernetes.
 
 #### 3.4 Pruebas de funcionamiento
 
@@ -250,3 +256,124 @@ Al terminar ejecutar el siguiente comando.
 ```bash
 docker compose -f docker-compose.dev.yml down
 ```
+
+### 3.5 Proto
+
+Creamos la carpeta proto y adentro creamos el archivo con la extensión `.proto`.
+
+### 3.6 go-grpc-server
+
+Este servicio hace dos cosas:
+
+- Escucha gRPC en el puerto 50051 y recibe **WarReportRequest**.
+- Publica el reporte en una cola de RabbitMQ.
+
+Ejecutar los siguientes comandos dentro de la carpeta de `go-grpc-server/`.
+
+```bash
+go mod init go-grpc-server
+protoc --proto_path=../proto --go_out=. --go-grpc_out=. ../proto/report.proto
+cp ../go-api/Dockerfile ../go-api/.dockerignore .
+```
+
+Despues creamos el archivo `main.go`, actualizamos dependendencias y comprobamos que se hayan creado los documentos `report.pb.go` y `report_grpc.pb.go` dentro de la carpeta `proto/`
+
+```bash
+go mod tidy
+ls proto
+```
+
+Creamos el archivo `Dockerfile` y `.dockerignore` a este le colocamos `*.md`.
+
+### 3.7 Prueba local con Docker Compose
+
+En la raíz del proyecto actualizamos el archivo `docker-compose.dev.yml` para poder hacer pruebas de manera local. El servicio llamado `go-server-svc` para que `GRPC_SERVER_ADDR` sea igual que en Kubernetes.
+
+#### 3.8 Pruebas de funcionamiento
+
+```bash
+cd ~/202307716_LAB_SO1_2S2026/proyecto3
+docker compose -f docker-compose.dev.yml up --build -d
+docker compose -f docker-compose.dev.yml logs go-writer go-server-svc
+
+curl -i -X POST localhost:8080/grpc-202307716 -H "Content-Type: application/json" -d '{"country":"ESP","warplanes_in_air":10,"warships_in_water":5,"timestamp":"2026-10-21T10:00:00Z"}'
+
+docker compose -f docker-compose.dev.yml exec rabbitmq rabbitmqctl list_queues name messages
+```
+
+El resultado que se espera es `200` y `reports 1`. Luego se hace una prueba con 100 peticiones aleatorias.
+
+```bash
+for i in $(seq 1 100); do
+  curl -s -o /dev/null -X POST localhost:8080/grpc-202307716 -H "Content-Type: application/json" \
+    -d '{"country":"ESP","warplanes_in_air":10,"warships_in_water":5,"timestamp":"2026-10-21T10:00:00Z"}' &
+done; wait
+docker compose -f docker-compose.dev.yml exec rabbitmq rabbitmqctl list_queues name messages
+```
+
+El resultado que se espera es `reports 101` y la cola se puede supervisar en `http://localhost:15672` con la credenciales del documento `docker-compose.dev.yml`.
+
+### 3.9 Go-consumer
+
+**Consumer en Go + Valkey**: El Consumer lee la cola reports, procesa cada mensaje y lo guarda en Valkey. Primero lo probamos con un Valkey en Docker, y más adelante el Operator lo reemplazará en GKE.
+
+Las keys creadas que se colocaran en Grafana son:
+
+- Máximo y mínimo de aviones y barcos: `max:planes`, `min:planes`, `max:ships` y `min:ships`
+- Top de países: `top:planes` y `top:ships`
+- Moda: `freq:planes` y `freq:ships`
+- Reportes por país: `reports:count`
+- Serie temporal del país asignado: `ts:esp`
+
+Ejecutar los siguientes comandos dentro de la carpeta de `go-consumer/`
+
+```bash
+go mod init go-consumer
+cp ../go-api/Dockerfile ../go-api/.dockerignore .
+```
+
+Creamos el archivo `main.go` y actualizamos dependencias.
+
+```bash
+go get github.com/rabbitmq/amqp091-go github.com/redis/go-redis/v9
+go mod tidy
+```
+
+Creamos el archivo `Dockerfile` y `.dockerignore` a este le colocamos `*.md`. 
+
+### 3.10 Prueba local con Docker Compose
+
+En la raíz del proyecto actualizamos el archivo `docker-compose.dev.yml` para poder hacer pruebas de manera local. Agregamos los servicios de `valkey` y `go-consumer`.
+
+#### 3.11 Pruebas de funcionamiento
+
+```bash
+cd ~/202307716_LAB_SO1_2S2026/proyecto3
+docker compose -f docker-compose.dev.yml up --build -d
+docker compose -f docker-compose.dev.yml logs go-consumer
+
+vk() { docker compose -f docker-compose.dev.yml exec -T valkey valkey-cli "$@"; }
+vk HGETALL reports:count
+vk ZREVRANGE top:planes 0 4 WITHSCORES
+vk XLEN ts:esp
+vk TTL max:planes
+```
+
+El resultado que se espera es `ESP 101`, `ESP 1010`, `101` y un TTL cercano a **86400**. Luego se hace una prueba con datos variados y aleatorios.
+
+```bash
+for i in $(seq 1 200); do
+  C=$(shuf -e USA RUS CHN ESP GMT -n1)
+  P=$((RANDOM % 51)); S=$((RANDOM % 31))
+  curl -s -o /dev/null -X POST localhost:8080/grpc-202307716 -H "Content-Type: application/json" \
+    -d "{\"country\":\"$C\",\"warplanes_in_air\":$P,\"warships_in_water\":$S,\"timestamp\":\"$(date -u +%FT%TZ)\"}" &
+done; wait
+
+vk GET max:planes; vk GET min:planes; vk GET max:ships; vk GET min:ships
+vk ZREVRANGE top:planes 0 4 WITHSCORES
+vk ZREVRANGE freq:planes 0 0 WITHSCORES
+vk HGETALL reports:count
+docker compose -f docker-compose.dev.yml exec rabbitmq rabbitmqctl list_queues name messages
+```
+
+El resultado que se espera son máximos y mínimos distintos de 10 y 5, cinco países en el top, la suma de los reportes igual a 301 y la cola de RabbitMQ en 0.
