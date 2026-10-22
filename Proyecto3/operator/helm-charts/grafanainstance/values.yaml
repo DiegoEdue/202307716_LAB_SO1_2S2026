@@ -1,0 +1,29 @@
+# Valores por defecto. El spec del Custom Resource GrafanaInstance los sobreescribe.
+image:
+  repository: grafana/grafana
+  tag: "11.4.0"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+adminUser: admin
+adminPassword: changeme   # Se sobreescribe en el CR
+
+# Grafana no lee Valkey de forma nativa: se usa el plugin Redis, compatible con Valkey
+plugins: redis-datasource
+
+datasource:
+  name: Valkey
+  url: "redis://valkey-svc:6379"
+
+service:
+  type: LoadBalancer
+  port: 80
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

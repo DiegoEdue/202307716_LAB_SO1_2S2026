@@ -1,0 +1,6 @@
+{
+  "route": "/grpc-202307716",
+  "countries": ["USA", "RUS", "CHN", "ESP", "GTM"],
+  "warplanes": { "min": 0, "max": 50 },
+  "warships": { "min": 0, "max": 30 }
+}

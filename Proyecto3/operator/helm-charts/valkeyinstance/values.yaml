@@ -1,0 +1,29 @@
+# Valores por defecto. El spec del Custom Resource ValkeyInstance los sobreescribe.
+image:
+  repository: valkey/valkey
+  tag: "8"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+service:
+  name: valkey-svc   # Nombre fijo: el consumer se conecta a valkey-svc:6379
+  port: 6379
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClass: ""
+
+config:
+  appendonly: "yes"              # Persistencia AOF
+  maxmemory: 256mb               # Tope de memoria para no saturar el pod
+  maxmemoryPolicy: volatile-lru  # Al llegar al tope, borra primero llaves con TTL
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

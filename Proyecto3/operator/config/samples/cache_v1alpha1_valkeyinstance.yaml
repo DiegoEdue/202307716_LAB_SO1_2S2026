@@ -1,0 +1,14 @@
+apiVersion: cache.mumnk8s.io/v1alpha1
+kind: ValkeyInstance
+metadata:
+  name: valkey
+  namespace: mumnk8s
+spec:
+  image:
+    repository: ZOT_HOST/valkey
+    tag: "8"
+  imagePullSecrets:
+    - name: zot-creds
+  persistence:
+    enabled: true
+    size: 1Gi

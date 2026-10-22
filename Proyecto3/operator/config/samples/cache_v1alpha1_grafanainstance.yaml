@@ -1,0 +1,15 @@
+apiVersion: cache.mumnk8s.io/v1alpha1
+kind: GrafanaInstance
+metadata:
+  name: grafana
+  namespace: mumnk8s
+spec:
+  image:
+    repository: ZOT_HOST/grafana
+    tag: "11.4.0"
+  imagePullSecrets:
+    - name: zot-creds
+  adminUser: admin
+  adminPassword: "admin365"
+  service:
+    type: LoadBalancer
