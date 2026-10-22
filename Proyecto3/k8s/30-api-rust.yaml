@@ -1,0 +1,55 @@
+# API REST en Rust: recibe de Locust (via Gateway) y reenvia a go-api-svc
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-rust-deploy
+  namespace: mumnk8s
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-rust
+  template:
+    metadata:
+      labels:
+        app: api-rust
+    spec:
+      imagePullSecrets:
+        - name: zot-creds
+      containers:
+        - name: api-rust
+          image: ZOT_HOST/api-rust:v1
+          env:
+            - name: CARNET
+              value: "202307716"
+            - name: GO_API_URL
+              value: http://go-api-svc:8080/report
+          ports:
+            - containerPort: 8080
+          # El balanceador de GKE necesita un 200 en "/"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            periodSeconds: 5
+          # Los requests son la base del calculo de CPU% del HPA
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-rust-service
+  namespace: mumnk8s
+spec:
+  selector:
+    app: api-rust
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP

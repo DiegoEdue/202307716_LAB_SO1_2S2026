@@ -1,0 +1,7 @@
+target/
+.env
+*.key
+*.pem
+htpasswd
+__pycache__/
+.venv/

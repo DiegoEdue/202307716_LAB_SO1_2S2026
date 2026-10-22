@@ -1,0 +1,21 @@
+services:
+  go-rest:
+    build: ./go-api
+    environment:
+      MODE: rest
+
+  go-client:
+    build: ./go-api
+    network_mode: "service:go-rest"
+    depends_on: [go-rest]
+    environment:
+      MODE: client
+      GRPC_SERVER_ADDR: go-server-svc:50051
+
+  api-rust:
+    build: ./api-rust
+    ports: ["8080:8080"]
+    depends_on: [go-rest]
+    environment:
+      GO_API_URL: http://go-rest:8080/report
+      CARNET: "202307716"

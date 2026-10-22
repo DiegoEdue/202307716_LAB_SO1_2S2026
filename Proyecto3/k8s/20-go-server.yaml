@@ -1,0 +1,73 @@
+# Deployment 2: servidor gRPC + writer (2 containers, misma imagen, distinto MODE)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-server-deploy
+  namespace: mumnk8s
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-server
+  template:
+    metadata:
+      labels:
+        app: go-server
+    spec:
+      imagePullSecrets:
+        - name: zot-creds
+      containers:
+        - name: grpc-server
+          image: ZOT_HOST/go-grpc-server:v1
+          env:
+            - name: MODE
+              value: server
+          ports:
+            - containerPort: 50051
+          readinessProbe:
+            tcpSocket:
+              port: 50051
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "128Mi"
+        - name: writer
+          image: ZOT_HOST/go-grpc-server:v1
+          env:
+            - name: MODE
+              value: writer
+            - name: QUEUE
+              value: reports
+            - name: WORKERS
+              value: "4"
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-creds
+                  key: url
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "128Mi"
+---
+# Headless: el cliente gRPC resuelve todos los pods y reparte la carga (round_robin)
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-server-svc
+  namespace: mumnk8s
+spec:
+  clusterIP: None
+  selector:
+    app: go-server
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051

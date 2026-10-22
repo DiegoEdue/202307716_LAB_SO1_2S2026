@@ -1,0 +1,40 @@
+# Consumer: lee la cola de RabbitMQ y guarda en el Valkey del Operator
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-consumer-deploy
+  namespace: mumnk8s
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: go-consumer
+  template:
+    metadata:
+      labels:
+        app: go-consumer
+    spec:
+      imagePullSecrets:
+        - name: zot-creds
+      containers:
+        - name: go-consumer
+          image: ZOT_HOST/go-consumer:v1
+          env:
+            - name: QUEUE
+              value: reports
+            - name: VALKEY_ADDR
+              value: valkey-svc:6379
+            - name: ASSIGNED_COUNTRY
+              value: esp
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-creds
+                  key: url
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "64Mi"
+            limits:
+              cpu: "500m"
+              memory: "128Mi"

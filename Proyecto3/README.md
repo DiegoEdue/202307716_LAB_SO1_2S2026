@@ -1,1 +1,252 @@
 # Proyecto 3 - Sistemas Operativos 1
+
+## Descargar el codigo del repositorio (opcional)
+
+Si se desea utilizar el codigo Go utilizado, entonces se debe de clonar el repositorio utilizando git
+
+```bash
+git clone git@github.com:DiegoEdue/202307716_LAB_SO1_2S2026.git
+cd 202307716_LAB_SO1_2S2026
+```
+
+Para este proyecto se utilizo una VM, la ISO que se utilizo fue Ubuntu Server 24 LTS. La activación de SSH es opcional pero facilita su manejo.
+
+
+## 1. Arquitectura 
+
+```
+Proyecto3/
+├── api-rust/
+│   ├── Cargo.toml
+│   ├── Dockerfile
+│   └── src/
+│       └── main.rs
+├── go-api/
+│   ├── main.go
+│   ├── Dockerfile
+│   └── go.mod
+├── go-consumer/
+├── go-grpc-server/
+├── k8s/
+│   ├── 01-namespace.yaml
+│   ├── 10-rabbitmq.yaml
+│   ├── 20-go-server.yaml
+│   ├── 21-go-api.yaml
+│   ├── 22-go-consumer.yaml
+│   ├── 30-api-rust.yaml
+│   ├── 31-hpa.yaml
+│   ├── 40-gateway.yaml
+│   └── 41-httproute.yaml
+├── locust/
+├── operator/
+├── proto/
+│   └── report.proto
+├── docs/
+└── docker-compose.dev.yml
+```
+
+## 2. Instalaciones
+
+### 2.1 Utilidades base
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl wget jq unzip git make build-essential \
+ca-certificates gnupg apt-transport-https python3-venv python3-pip
+```
+
+### 2.2 Go
+
+```bash
+GO_VERSION=$(curl -s "https://go.dev/VERSION?m=text" | head -1)
+curl -LO https://go.dev/dl/${GO_VERSION}.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go
+sudo tar -C /usr/local -xzf ${GO_VERSION}.linux-amd64.tar.gz
+rm ${GO_VERSION}.linux-amd64.tar.gz
+
+echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> ~/.bashrc
+source ~/.bashrc
+go version
+```
+
+### 2.3 Rust
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source "$HOME/.cargo/env"
+rustc --version && cargo --version
+```
+
+### 2.4 Protocol Buffers y plugins de Go
+
+```bash
+sudo apt install -y protobuf-compiler
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+
+protoc --version
+protoc-gen-go --version
+protoc-gen-go-grpc --version
+```
+### 2.5 Google Cloud CLI, kubectl y el plugin de GKE
+
+```bash
+curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list
+sudo apt update
+sudo apt install -y google-cloud-cli google-cloud-cli-gke-gcloud-auth-plugin kubectl
+
+gcloud --version
+kubectl version --client
+gke-gcloud-auth-plugin --version
+```
+
+Para iniciar sesión en WSL se debe utilizar:
+
+```bash
+gcloud auth login --no-launch-browser
+gcloud config set project PROJECT_ID
+```
+
+### 2.6 Helm
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm version --short
+```
+
+### 2.7 Operator SDK
+
+```bash
+ARCH=amd64
+OS=linux
+curl -LO https://github.com/operator-framework/operator-sdk/releases/latest/download/operator-sdk_${OS}_${ARCH}
+chmod +x operator-sdk_${OS}_${ARCH}
+sudo mv operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
+operator-sdk version
+```
+
+### 2.8 Locust (en entorno virtual)
+
+Va en un entorno virtual para no ensuciar el Python del sistema:
+
+```bash
+python3 -m venv ~/locust-env
+source ~/locust-env/bin/activate
+pip install locust
+locust --version
+deactivate
+
+# Para usarlo despues:
+source ~/locust-env/bin/activate
+```
+
+### 2.9 ORAS (para el OCI Artifact en ZOT)
+
+No se utiliza snap porque WSL puede ocasionar fallas, a pesar de que es más fácil se debe hacer de la siguiente forma.
+
+```bash
+ORAS_VERSION=$(curl -s https://api.github.com/repos/oras-project/oras/releases/latest | jq -r .tag_name | sed 's/^v//')
+curl -LO https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/oras_${ORAS_VERSION}_linux_amd64.tar.gz
+tar -xzf oras_${ORAS_VERSION}_linux_amd64.tar.gz oras
+sudo mv oras /usr/local/bin/
+rm oras_${ORAS_VERSION}_linux_amd64.tar.gz
+oras version
+```
+
+### 2.10 Dapr CLI
+
+```bash
+wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash
+dapr --version
+```
+
+### 2.11 Docker
+
+Al estar en Windows se utiliza Docker Deskstop así que lo que hay que hacer para que funcione en Ubuntu con WSL es lo siguiente:
+
+1. Abrir Docker Deskstop
+2. Ir a Settings, luego a Resources, después a WSL Integration, activar Ubuntu y marcar también la casilla Enable integration with my default WSL distro.
+3. Haz clic en Apply & restart.
+4. Verificar en Ubuntu con el siguiente comando: `docker run hello-world`
+
+## 3. Configuraciones Generales
+
+### 3.1 go-api
+
+Ejecutar los siguientes comandos dentro de la carpeta de go-api/
+
+```bash
+cd go-api
+go mod init go-api
+protoc --proto_path=../proto --go_out=. --go-grpc_out=. ../proto/report.proto
+go get google.golang.org/grpc google.golang.org/protobuf
+```
+
+Despues creamos el archivo `main.go`, actualizamos dependendencias y comprobamos que se hayan creado los documentos `report.pb.go` y `report_grpc.pb.go` dentro de la carpeta `proto/`
+
+```bash
+go mod tidy
+ls proto
+```
+
+Creamos el archivo `Dockerfile` y `.dockerignore` a este le colocamos `*.md`.
+
+### 3.2 Rust
+
+Ejecutamos dentro de la carpeta `api-rust/` el siguiente comando
+
+```bash
+cargo init --name api-rust
+```
+
+Esto creara la carpeta con ese nombre, el archivo `main.rs` dentro de src/ y `Cargo.toml`. Modificaremos las dependencias del archivo `.toml` colocando las dependencias a mano. 
+
+Las dependencias que hay que colocar son las siguientes:
+
+```toml
+axum = "0.7"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+serde = { version = "1", features = ["derive"] }
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+```
+
+Despues ejecuta el siguiente comando para compilarlo.
+
+```bash
+cargo build
+```
+
+Luego creamos el `Dockerfile`.
+
+### 3.3 Prueba local con Docker Compose
+
+En la raíz del proyecto creamos un archivo docker-compose.dev.yml para poder hacer pruebas de manera local. Hace que los dos contenedores compartan red, como si fuera un pod de Kubernetes.
+
+#### 3.4 Pruebas de funcionamiento
+
+```bash
+docker compose -f docker-compose.dev.yml up --build
+```
+
+En otra terminal se deben probar los siguientes comandos:
+
+```bash
+curl -i localhost:8080/
+
+curl -i -X POST localhost:8080/grpc-202307716 -H "Content-Type: application/json" \
+  -d '{"country":"ESP","warplanes_in_air":10,"warships_in_water":5,"timestamp":"2026-10-21T10:00:00Z"}'
+
+curl -i -X POST localhost:8080/grpc-202307716 -H "Content-Type: application/json" \
+  -d '{"country":"XXX","warplanes_in_air":10,"warships_in_water":5,"timestamp":"2026-10-21T10:00:00Z"}'
+```
+
+Debería de responder con lo siguiente:
+1. `200 OK`
+2. `500` "error al contactar el servidor gRPC"
+3. `400` "pais invalido"
+
+Al terminar ejecutar el siguiente comando.
+```bash
+docker compose -f docker-compose.dev.yml down
+```
