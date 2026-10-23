@@ -377,3 +377,83 @@ docker compose -f docker-compose.dev.yml exec rabbitmq rabbitmqctl list_queues n
 ```
 
 El resultado que se espera son máximos y mínimos distintos de 10 y 5, cinco países en el top, la suma de los reportes igual a 301 y la cola de RabbitMQ en 0.
+
+### 3.12 Locust
+
+Locust lee un archivo `config.json` con la ruta, los países y los rangos. Este archivo es el `OCI Artifact` que se sube a `Zot`.
+
+###  3.13 Operator para Valkey 
+
+Desde la ruta principal:
+
+```shell
+mkdir -p operator && cd operator
+operator-sdk init --plugins helm --domain mumnk8s.io --project-name mumn-operator
+operator-sdk create api --group cache --version v1alpha1 --kind ValkeyInstance
+operator-sdk create api --group cache --version v1alpha1 --kind GrafanaInstance
+```
+
+Cada create api genera un chart de ejemplo en `helm-charts/<kind>/`, un CRD y un CR de muestra en `config/samples/`. 
+
+Veras **valkeyinstance** y **grafanainstance** en **helm-charts**, además de los CRD de ambos.
+
+### 3.14 Helm-charts
+
+Ahora borra las plantillas de ejemplo que genero create api.
+
+```shell
+rm -rf helm-charts/valkeyinstance/templates/* helm-charts/grafanainstance/templates/*
+ls helm-charts
+```
+
+Despues dentro de `helm-charts/valkeyinstance/` hacemos lo siguiente:
+- Modificamos el `values.yaml`
+- Creamos dentro de templates `service.yaml`, `statefulset.yaml`, con ese ultimo logramos persistencia, gracias a --appendonly yes
+
+Despues dentro de `helm-charts/grafanainstance/`:
+- Modificamos el `values.yaml`
+- Creamos dentro de templates `secret.yaml`, `configmap-provisioning.yaml`, `configmap-dashboards.yaml`, `deployment.yaml`, `service.yaml`, 
+
+Creamos la carpeta `dashboards` y ponemos `mumn.json` este contendra un pequeño ejemplo de como estara grafana.
+
+### 3.15 Recursos personalizados (CR) y permisos
+
+#### 3.15.1 samples
+Dentro de samples modificamos `config/samples/cache_v1alpha1_grafanainstance.yaml` y `config/samples/cache_v1alpha1_valkeyinstance.yaml`
+
+LoadBalancer te da una IP pública para abrir Grafana desde el navegador. Si se desea quitar 
+
+#### 3.15.2 rbac
+
+En el archivo `config/rbac/role.yaml`, al final de la lsita de `rules:` agregamos 
+
+```yaml
+- apiGroups: [""]
+  resources: ["configmaps", "secrets", "services", "persistentvolumeclaims", "serviceaccounts"]
+  verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets"]
+  verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+```
+
+Si falta alguno, el Operator lo dirá en sus logs con un error forbidden
+
+### 3.16 Probamos
+Para validar ejecutamos desde operator/
+```shell
+helm lint helm-charts/valkeyinstance
+helm lint helm-charts/grafanainstance
+helm template valkey helm-charts/valkeyinstance
+helm template grafana helm-charts/grafanainstance
+docker pull grafana/grafana:11.4.0 && docker pull valkey/valkey:8
+```
+
+### 3.17 Grafana
+
+Creamos un dashboard de manera local, para comprobar que todo funciona localmente y así subir todo funcionando a GCP.
+
+Creamos la carpeta `grafana-dev/` y dentro `datasource.yaml`.
+
+Agregamos el servicio a `docker-compose.dev.yml`.
+
+Armamos todo el dasboard, comprobamos que los datos se ven correctamente y finalmente exportamos el dasboard y lo pegamor en la siguiente ruta `operator/helm-charts/grafanainstance/dashboards/mumn.json`.

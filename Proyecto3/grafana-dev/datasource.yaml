@@ -1,0 +1,13 @@
+apiVersion: 1
+datasources:
+  - name: Valkey
+    uid: valkey
+    type: redis-datasource
+    access: proxy
+    url: redis://valkey:6379
+    isDefault: true
+    editable: false
+    jsonData:
+      client: standalone
+      poolSize: 5
+      timeout: 10

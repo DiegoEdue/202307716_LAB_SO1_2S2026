@@ -33,9 +33,14 @@ type config struct {
 
 // Todo se actualiza en una sola operacion atomica (seguro con varias replicas)
 // KEYS: 1 max:planes 2 min:planes 3 max:ships 4 min:ships 5 top:planes 6 top:ships
-//       7 freq:planes 8 freq:ships 9 reports:count 10 ts:<pais asignado>
+//
+//	7 freq:planes 8 freq:ships 9 reports:count 10 ts:<pais asignado>
+//
 // ARGV: 1 aviones 2 barcos 3 pais 4 ttl 5 "1" si es el pais asignado 6 maxlen del stream
 var script = redis.NewScript(`
+if #KEYS ~= 12 then
+  return redis.error_reply('se esperaban 12 llaves, llegaron ' .. #KEYS)
+end
 local planes = tonumber(ARGV[1])
 local ships = tonumber(ARGV[2])
 local country = ARGV[3]
@@ -53,10 +58,12 @@ maxset(KEYS[1], planes)
 minset(KEYS[2], planes)
 maxset(KEYS[3], ships)
 minset(KEYS[4], ships)
-redis.call('ZINCRBY', KEYS[5], planes, country)
-redis.call('ZINCRBY', KEYS[6], ships, country)
+redis.call('HINCRBY', KEYS[5], country, planes)
+redis.call('HINCRBY', KEYS[6], country, ships)
 redis.call('ZINCRBY', KEYS[7], 1, tostring(planes))
 redis.call('ZINCRBY', KEYS[8], 1, tostring(ships))
+redis.call('SET', KEYS[11], redis.call('ZRANGE', KEYS[7], 0, 0, 'REV')[1])
+redis.call('SET', KEYS[12], redis.call('ZRANGE', KEYS[8], 0, 0, 'REV')[1])
 redis.call('HINCRBY', KEYS[9], country, 1)
 if ARGV[5] == '1' then
   redis.call('XADD', KEYS[10], 'MAXLEN', '~', ARGV[6], '*', 'planes', planes, 'ships', ships)
@@ -150,6 +157,7 @@ func main() {
 			"max:planes", "min:planes", "max:ships", "min:ships",
 			"top:planes", "top:ships", "freq:planes", "freq:ships",
 			"reports:count", "ts:" + assigned,
+			"mode:planes", "mode:ships",
 		},
 	}
 

@@ -54,3 +54,18 @@ services:
       QUEUE: reports
       VALKEY_ADDR: valkey:6379
       ASSIGNED_COUNTRY: esp
+  grafana:
+    image: grafana/grafana:11.4.0
+    ports: ["3000:3000"]
+    depends_on: [valkey]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: redis-datasource
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./grafana-dev:/etc/grafana/provisioning/datasources
+      - grafana-data:/var/lib/grafana
+      
+volumes:
+  grafana-data:
