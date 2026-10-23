@@ -18,7 +18,7 @@ spec:
         - name: zot-creds
       containers:
         - name: api-rust
-          image: ZOT_HOST/api-rust:v1
+          image: 35.239.210.169.sslip.io/api-rust:v1
           env:
             - name: CARNET
               value: "202307716"

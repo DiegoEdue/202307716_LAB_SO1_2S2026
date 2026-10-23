@@ -18,7 +18,7 @@ spec:
         - name: zot-creds
       containers:
         - name: grpc-server
-          image: ZOT_HOST/go-grpc-server:v1
+          image: 35.239.210.169.sslip.io/go-grpc-server:v1
           env:
             - name: MODE
               value: server
@@ -36,7 +36,7 @@ spec:
               cpu: "500m"
               memory: "128Mi"
         - name: writer
-          image: ZOT_HOST/go-grpc-server:v1
+          image: 35.239.210.169.sslip.io/go-grpc-server:v1
           env:
             - name: MODE
               value: writer

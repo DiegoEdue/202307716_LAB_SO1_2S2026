@@ -5,7 +5,7 @@ metadata:
   namespace: mumnk8s
 spec:
   image:
-    repository: ZOT_HOST/valkey
+    repository: 35.239.210.169.sslip.io/valkey
     tag: "8"
   imagePullSecrets:
     - name: zot-creds

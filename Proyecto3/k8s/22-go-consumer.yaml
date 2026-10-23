@@ -18,7 +18,7 @@ spec:
         - name: zot-creds
       containers:
         - name: go-consumer
-          image: ZOT_HOST/go-consumer:v1
+          image: 35.239.210.169.sslip.io/go-consumer:v1
           env:
             - name: QUEUE
               value: reports
