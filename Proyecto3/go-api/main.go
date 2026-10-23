@@ -30,6 +30,9 @@ func getenv(k, def string) string {
 	return def
 }
 
+// Variable a nivel de paquete para controlar el logging según la variable de entorno LOG_REQUESTS
+var logReq = getenv("LOG_REQUESTS", "true") != "false"
+
 func main() {
 	switch getenv("MODE", "rest") {
 	case "rest":
@@ -111,6 +114,12 @@ func runClient() {
 			http.Error(w, "error al contactar el servidor gRPC", http.StatusBadGateway)
 			return
 		}
+
+		// Imprime el log del reporte enviado si logReq es verdadero
+		if logReq {
+			log.Printf("gRPC enviado: pais=%s aviones=%d barcos=%d -> %s", c, rep.WarplanesInAir, rep.WarshipsInWater, resp.Status)
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": resp.Status})
 	})

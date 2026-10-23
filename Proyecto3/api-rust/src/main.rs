@@ -13,6 +13,7 @@ struct Report {
 struct AppState {
     client: reqwest::Client,
     target: String,
+    log_requests: bool,
 }
 
 async fn health() -> &'static str {
@@ -26,6 +27,12 @@ async fn forward(State(st): State<Arc<AppState>>, Json(rep): Json<Report>) -> (S
             let status = StatusCode::from_u16(resp.status().as_u16())
                 .unwrap_or(StatusCode::BAD_GATEWAY);
             let body = resp.text().await.unwrap_or_default();
+            if st.log_requests {
+                println!(
+                    "reporte recibido: pais={} aviones={} barcos={} -> go-api respondio {}",
+                    rep.country, rep.warplanes_in_air, rep.warships_in_water, status.as_u16()
+                );
+            }
             (status, body)
         }
         Err(e) => {
@@ -45,7 +52,8 @@ async fn main() {
         .timeout(Duration::from_secs(10))
         .build()
         .unwrap();
-    let state = Arc::new(AppState { client, target });
+    let log_requests = env::var("LOG_REQUESTS").map(|v| v != "false").unwrap_or(true);
+    let state = Arc::new(AppState { client, target, log_requests });
 
     let app = Router::new()
         .route("/", get(health))

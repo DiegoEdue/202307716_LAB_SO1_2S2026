@@ -36,6 +36,8 @@ func getenv(k, def string) string {
 	return def
 }
 
+var logReq = getenv("LOG_REQUESTS", "true") != "false"
+
 func main() {
 	switch getenv("MODE", "server") {
 	case "server":
@@ -80,6 +82,9 @@ func (s *server) SendReport(ctx context.Context, req *pb.WarReportRequest) (*pb.
 	if resp.StatusCode != http.StatusOK {
 		return nil, status.Errorf(codes.Internal, "writer respondio %d", resp.StatusCode)
 	}
+	if logReq {
+	log.Printf("gRPC recibido: pais=%s aviones=%d barcos=%d", rep.Country, rep.WarplanesInAir, rep.WarshipsInWater)
+	}	
 	return &pb.WarReportResponse{Status: "Reporte de " + rep.Country + " procesado"}, nil
 }
 
@@ -189,6 +194,9 @@ func runWriter() {
 				log.Printf("error publicando: %v", err)
 				http.Error(w, "error publicando en RabbitMQ", http.StatusBadGateway)
 				return
+			}
+			if logReq {
+				log.Printf("publicado en RabbitMQ (cola %s): %s", queue, string(body))
 			}
 			w.Write([]byte("ok"))
 		case <-time.After(5 * time.Second):
