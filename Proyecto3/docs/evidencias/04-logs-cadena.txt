@@ -1,0 +1,27 @@
+$ kubectl logs -n mumnk8s -l app=api-rust --tail=10 --prefix; kubectl logs -n mumnk8s -l app=go-api -c grpc-client --tail=5 --prefix; kubectl logs -n mumnk8s -l app=go-server -c grpc-server --tail=5 --prefix; kubectl logs -n mumnk8s -l app=go-server -c writer --tail=5 --prefix
+[pod/api-rust-deploy-d87db5fc6-qwpnl/api-rust] reporte recibido: pais=CHN aviones=22 barcos=24 -> go-api respondio 200
+[pod/api-rust-deploy-d87db5fc6-qwpnl/api-rust] reporte recibido: pais=USA aviones=37 barcos=2 -> go-api respondio 200
+[pod/api-rust-deploy-d87db5fc6-qwpnl/api-rust] reporte recibido: pais=CHN aviones=46 barcos=28 -> go-api respondio 200
+[pod/api-rust-deploy-d87db5fc6-qwpnl/api-rust] reporte recibido: pais=RUS aviones=10 barcos=4 -> go-api respondio 200
+[pod/api-rust-deploy-d87db5fc6-qwpnl/api-rust] reporte recibido: pais=ESP aviones=3 barcos=7 -> go-api respondio 200
+[pod/api-rust-deploy-d87db5fc6-qwpnl/api-rust] reporte recibido: pais=RUS aviones=41 barcos=30 -> go-api respondio 200
+[pod/api-rust-deploy-d87db5fc6-qwpnl/api-rust] reporte recibido: pais=CHN aviones=26 barcos=26 -> go-api respondio 200
+[pod/api-rust-deploy-d87db5fc6-qwpnl/api-rust] reporte recibido: pais=CHN aviones=28 barcos=18 -> go-api respondio 200
+[pod/api-rust-deploy-d87db5fc6-qwpnl/api-rust] reporte recibido: pais=ESP aviones=1 barcos=1 -> go-api respondio 200
+[pod/api-rust-deploy-d87db5fc6-qwpnl/api-rust] reporte recibido: pais=ESP aviones=21 barcos=9 -> go-api respondio 200
+[pod/go-api-deploy-688984ffd6-kdd92/grpc-client] 2026/10/24 01:12:23 gRPC enviado: pais=chn aviones=26 barcos=26 -> Reporte de chn procesado
+[pod/go-api-deploy-688984ffd6-kdd92/grpc-client] 2026/10/24 01:12:23 gRPC enviado: pais=chn aviones=28 barcos=18 -> Reporte de chn procesado
+[pod/go-api-deploy-688984ffd6-kdd92/grpc-client] 2026/10/24 01:13:48 gRPC enviado: pais=esp aviones=21 barcos=9 -> Reporte de esp procesado
+[pod/go-api-deploy-688984ffd6-kdd92/grpc-client] 2026/10/24 01:16:59 gRPC enviado: pais=esp aviones=1 barcos=1 -> Reporte de esp procesado
+[pod/go-api-deploy-688984ffd6-kdd92/grpc-client] 2026/10/24 06:08:42 gRPC enviado: pais=esp aviones=21 barcos=9 -> Reporte de esp procesado
+[pod/go-server-deploy-676ff7d974-jxgk8/grpc-server] 2026/10/24 01:12:23 gRPC recibido: pais=esp aviones=27 barcos=19
+[pod/go-server-deploy-676ff7d974-jxgk8/grpc-server] 2026/10/24 01:12:23 gRPC recibido: pais=chn aviones=18 barcos=21
+[pod/go-server-deploy-676ff7d974-jxgk8/grpc-server] 2026/10/24 01:13:48 gRPC recibido: pais=esp aviones=21 barcos=9
+[pod/go-server-deploy-676ff7d974-jxgk8/grpc-server] 2026/10/24 01:16:59 gRPC recibido: pais=esp aviones=1 barcos=1
+[pod/go-server-deploy-676ff7d974-jxgk8/grpc-server] 2026/10/24 06:08:42 gRPC recibido: pais=esp aviones=21 barcos=9
+[pod/go-server-deploy-676ff7d974-jxgk8/writer] 2026/10/24 01:12:23 publicado en RabbitMQ (cola reports): {"country":"esp","warplanes_in_air":27,"warships_in_water":19,"timestamp":"2026-10-24T01:12:23Z"}
+[pod/go-server-deploy-676ff7d974-jxgk8/writer] 2026/10/24 01:12:23 publicado en RabbitMQ (cola reports): {"country":"chn","warplanes_in_air":18,"warships_in_water":21,"timestamp":"2026-10-24T01:12:23Z"}
+[pod/go-server-deploy-676ff7d974-jxgk8/writer] 2026/10/24 01:13:48 publicado en RabbitMQ (cola reports): {"country":"esp","warplanes_in_air":21,"warships_in_water":9,"timestamp":"2026-10-24T09:00:00Z"}
+[pod/go-server-deploy-676ff7d974-jxgk8/writer] 2026/10/24 01:16:59 publicado en RabbitMQ (cola reports): {"country":"esp","warplanes_in_air":1,"warships_in_water":1,"timestamp":"2026-10-24T08:00:00Z"}
+[pod/go-server-deploy-676ff7d974-jxgk8/writer] 2026/10/24 06:08:42 publicado en RabbitMQ (cola reports): {"country":"esp","warplanes_in_air":21,"warships_in_water":9,"timestamp":"2026-10-24T09:00:00Z"}
+

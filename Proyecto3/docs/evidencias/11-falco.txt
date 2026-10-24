@@ -1,0 +1,10 @@
+$ helm list -n falco; kubectl get ds,pods -n falco
+NAME 	NAMESPACE	REVISION	UPDATED                               	STATUS  	CHART      	APP VERSION
+falco	falco    	1       	2026-10-23 19:07:21.43343916 -0600 CST	deployed	falco-9.2.1	0.45.1     
+NAME                   DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR   AGE
+daemonset.apps/falco   2         2         2       2            2           <none>          5h1m
+
+NAME              READY   STATUS    RESTARTS   AGE
+pod/falco-gzdxt   2/2     Running   0          36s
+pod/falco-wvztc   2/2     Running   0          19s
+

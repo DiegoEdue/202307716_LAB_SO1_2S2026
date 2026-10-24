@@ -1,0 +1,25 @@
+$ kubectl get crd | grep mumnk8s; kubectl -n mumn-operator-system get pods; kubectl get valkeyinstances,grafanainstances,statefulset,pvc,svc -n mumnk8s
+grafanainstances.cache.mumnk8s.io                  2026-10-23T21:50:12Z
+valkeyinstances.cache.mumnk8s.io                   2026-10-23T21:50:13Z
+NAME                                                READY   STATUS    RESTARTS   AGE
+mumn-operator-controller-manager-6667f7df75-dvkpj   1/1     Running   0          6h50m
+NAME                                     AGE
+valkeyinstance.cache.mumnk8s.io/valkey   8h
+
+NAME                                       AGE
+grafanainstance.cache.mumnk8s.io/grafana   8h
+
+NAME                      READY   AGE
+statefulset.apps/valkey   1/1     8h
+
+NAME                                  STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/data-valkey-0   Bound    pvc-948bf053-63f2-405c-b377-f9273e7112cc   1Gi        RWO            standard-rwo   <unset>                 8h
+
+NAME                       TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)              AGE
+service/api-rust-service   ClusterIP      34.118.225.91    <none>          80/TCP               23h
+service/go-api-svc         ClusterIP      34.118.228.39    <none>          8080/TCP             23h
+service/go-server-svc      ClusterIP      None             <none>          50051/TCP            23h
+service/grafana            LoadBalancer   34.118.228.115   34.42.188.171   80:31934/TCP         8h
+service/rabbitmq           ClusterIP      34.118.225.120   <none>          5672/TCP,15672/TCP   23h
+service/valkey-svc         ClusterIP      34.118.231.8     <none>          6379/TCP             35m
+

@@ -1,0 +1,11 @@
+$ kubectl get pods -A -o custom-columns=NS:.metadata.namespace,POD:.metadata.name,IMAGENES:.spec.containers[*].image | grep -E 'NS|mumnk8s|mumn-operator'
+NS                     POD                                                    IMAGENES
+mumn-operator-system   mumn-operator-controller-manager-6667f7df75-dvkpj      35.239.210.169.sslip.io/mumn-operator:v2
+mumnk8s                api-rust-deploy-d87db5fc6-qwpnl                        35.239.210.169.sslip.io/api-rust:v1
+mumnk8s                go-api-deploy-688984ffd6-kdd92                         35.239.210.169.sslip.io/go-api:v1,35.239.210.169.sslip.io/go-api:v1
+mumnk8s                go-consumer-deploy-5b6b64c4c4-4hbwj                    35.239.210.169.sslip.io/go-consumer:v1
+mumnk8s                go-server-deploy-676ff7d974-jxgk8                      35.239.210.169.sslip.io/go-grpc-server:v1,35.239.210.169.sslip.io/go-grpc-server:v1
+mumnk8s                grafana-68486fb474-vrdrt                               35.239.210.169.sslip.io/grafana:11.4.0
+mumnk8s                rabbitmq-b8d56cd89-sldzk                               35.239.210.169.sslip.io/rabbitmq:3-management
+mumnk8s                valkey-0                                               35.239.210.169.sslip.io/valkey:8
+

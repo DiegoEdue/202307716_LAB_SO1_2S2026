@@ -1,0 +1,9 @@
+$ gcloud container clusters list; kubectl get nodes -o wide
+NAME               LOCATION       MASTER_VERSION      MASTER_IP        MACHINE_TYPE   NODE_VERSION        NUM_NODES  STATUS       STACK_TYPE
+cluster-johanna    us-central1-a  1.36.4-gke.1495003  104.197.196.205  n1-standard-2  1.36.4-gke.1495003             RUNNING      IPV4
+mumn-diego         us-central1-a  1.36.4-gke.1495002  136.119.146.210  e2-standard-2  1.36.4-gke.1495002  2          RECONCILING  IPV4
+gke-cluster-ashly  us-east1-b     1.36.4-gke.1495003  136.108.156.160  n1-standard-2  1.36.4-gke.1495003             RUNNING      IPV4
+NAME                                        STATUS   ROLES    AGE   VERSION               INTERNAL-IP   EXTERNAL-IP    OS-IMAGE                             KERNEL-VERSION      CONTAINER-RUNTIME
+gke-mumn-diego-default-pool-4af738f5-3qft   Ready    <none>   9h    v1.36.4-gke.1495002   10.128.0.43   34.60.78.211   Container-Optimized OS from Google   6.12.105+ (amd64)   containerd://2.2.7
+gke-mumn-diego-default-pool-4af738f5-bjwc   Ready    <none>   9h    v1.36.4-gke.1495002   10.128.0.42   34.61.190.58   Container-Optimized OS from Google   6.12.105+ (amd64)   containerd://2.2.7
+

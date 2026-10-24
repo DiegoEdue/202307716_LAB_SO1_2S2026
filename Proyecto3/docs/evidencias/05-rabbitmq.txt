@@ -1,0 +1,6 @@
+$ kubectl exec -n mumnk8s deploy/rabbitmq -- rabbitmqctl list_queues name messages consumers
+Timeout: 60.0 seconds ...
+Listing queues for vhost / ...
+name	messages	consumers
+reports	0	1
+

@@ -1,0 +1,14 @@
+$ kubectl get gateway,httproute -n mumnk8s; curl -si -X POST http://8.232.243.172/grpc-202307716 -H 'Content-Type: application/json' -d @/tmp/reporte.json
+NAME                                            CLASS                            ADDRESS         PROGRAMMED   AGE
+gateway.gateway.networking.k8s.io/api-gateway   gke-l7-global-external-managed   8.232.243.172   True         23h
+
+NAME                                            HOSTNAMES   AGE
+httproute.gateway.networking.k8s.io/api-route               23h
+HTTP/1.1 200 OK
+content-type: text/plain; charset=utf-8
+Content-Length: 38
+date: Sat, 24 Oct 2026 06:08:42 GMT
+via: 1.1 google
+
+{"status":"Reporte de esp procesado"}
+

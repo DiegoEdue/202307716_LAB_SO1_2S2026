@@ -1,0 +1,9 @@
+$ kubectl exec -n mumnk8s valkey-0 -- valkey-cli DBSIZE; kubectl exec -n mumnk8s valkey-0 -- valkey-cli TTL max:planes; kubectl exec -n mumnk8s valkey-0 -- valkey-cli INFO persistence | grep aof_enabled; kubectl exec -n mumnk8s valkey-0 -- valkey-cli INFO replication | head -n 4
+12
+86381
+aof_enabled:1
+# Replication
+role:master
+connected_slaves:0
+replicas_waiting_psync:0
+

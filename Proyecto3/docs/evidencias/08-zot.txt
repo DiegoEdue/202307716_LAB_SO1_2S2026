@@ -1,0 +1,12 @@
+$ oras repo ls 35.239.210.169.sslip.io; oras repo tags 35.239.210.169.sslip.io/go-api; oras manifest fetch 35.239.210.169.sslip.io/locust-config:v1
+api-rust
+go-api
+go-consumer
+go-grpc-server
+grafana
+locust-config
+mumn-operator
+rabbitmq
+valkey
+v1
+{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json","artifactType":"application/vnd.unknown.artifact.v1","config":{"mediaType":"application/vnd.oci.empty.v1+json","digest":"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a","size":2,"data":"e30="},"layers":[{"mediaType":"application/json","digest":"sha256:e5de18b586c9ee7f824ab8fd801c8ffa9b00e2e3991e6d099b1f48d6b10d952b","size":164,"annotations":{"org.opencontainers.image.title":"config.json"}}],"annotations":{"org.opencontainers.image.created":"2026-10-23T06:42:44Z"}}
