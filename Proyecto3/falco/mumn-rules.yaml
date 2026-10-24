@@ -1,0 +1,18 @@
+- rule: Lectura de archivo sensible en contenedor (Proyecto3)
+  desc: >
+    Detecta la lectura de /etc/shadow o /app/secretos desde cualquier contenedor
+    del cluster. Regla personalizada del Proyecto 3 (carnet 202307716).
+  condition: >
+    evt.type in (open, openat, openat2) and evt.is_open_read=true and fd.num>=0
+    and fd.name in (/etc/shadow, /app/secretos)
+    and container.id != host
+  output: >
+    ALERTA-MUMN archivo sensible leido (archivo=%fd.name proceso=%proc.name
+    cmd=%proc.cmdline usuario=%user.name contenedor=%container.name
+    id=%container.id imagen=%container.image.repository)
+  priority: CRITICAL
+  tags: [mumnk8s, proyecto3, filesystem]
+- rule: Read sensitive file untrusted
+  enabled: false
+  override:
+    enabled: replace
