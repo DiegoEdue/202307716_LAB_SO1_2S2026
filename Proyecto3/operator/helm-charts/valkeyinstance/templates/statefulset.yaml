@@ -5,7 +5,7 @@ metadata:
   labels:
     app: valkey
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicas }}
   serviceName: {{ .Values.service.name }}
   selector:
     matchLabels:
@@ -23,16 +23,15 @@ spec:
         - name: valkey
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["sh", "-c"]
           args:
-            - valkey-server
-            - --appendonly
-            - {{ .Values.config.appendonly | quote }}
-            - --dir
-            - /data
-            - --maxmemory
-            - {{ .Values.config.maxmemory | quote }}
-            - --maxmemory-policy
-            - {{ .Values.config.maxmemoryPolicy | quote }}
+            - |
+              ORD="${HOSTNAME##*-}"
+              EXTRA=""
+              if [ "$ORD" != "0" ]; then
+                EXTRA="--replicaof {{ .Values.service.name }} {{ .Values.service.port }}"
+              fi
+              exec valkey-server --appendonly {{ .Values.config.appendonly | quote }} --dir /data --maxmemory {{ .Values.config.maxmemory | quote }} --maxmemory-policy {{ .Values.config.maxmemoryPolicy | quote }} $EXTRA
           ports:
             - name: valkey
               containerPort: 6379

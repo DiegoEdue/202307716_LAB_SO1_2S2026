@@ -87,11 +87,13 @@ spec:
         resources:
           limits:
             cpu: 500m
-            memory: 128Mi
+            memory: 512Mi
           requests:
             cpu: 10m
             memory: 64Mi
         volumeMounts: []
       volumes: []
       serviceAccountName: controller-manager
+      imagePullSecrets:
+      - name: zot-creds
       terminationGracePeriodSeconds: 10

@@ -27,3 +27,6 @@ resources:
   limits:
     cpu: 500m
     memory: 512Mi
+
+# 1 = solo primario; 2 o más agrega réplicas de lectura
+replicas: 1

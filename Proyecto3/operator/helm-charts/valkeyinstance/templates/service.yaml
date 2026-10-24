@@ -1,3 +1,4 @@
+# Apunta solo al primario (pod 0): el consumer y Grafana siempre hablan con él
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,6 +8,7 @@ metadata:
 spec:
   selector:
     app: valkey
+    statefulset.kubernetes.io/pod-name: {{ .Release.Name }}-0
   ports:
     - name: valkey
       port: {{ .Values.service.port }}

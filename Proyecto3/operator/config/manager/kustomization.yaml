@@ -1,2 +1,8 @@
 resources:
 - manager.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+images:
+- name: controller
+  newName: 35.239.210.169.sslip.io/mumn-operator
+  newTag: v2

@@ -10,6 +10,6 @@ spec:
   imagePullSecrets:
     - name: zot-creds
   adminUser: admin
-  adminPassword: "admin365"
+  adminPassword: "CAMBIA-ESTA-CLAVE"
   service:
     type: LoadBalancer
