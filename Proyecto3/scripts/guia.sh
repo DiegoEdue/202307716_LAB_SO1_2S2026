@@ -52,28 +52,3 @@ oras pull $ZOT/locust-config:v1 -o /tmp/cfg
 source ~/locust-env/bin/activate
 CONFIG_FILE=/tmp/cfg/config.json locust -f locust/locustfile.py --host http://$GW --headless -u 20 -r 5 -t 60s 2>&1 | tail -n 8
 deactivate
-
-cd ~/202307716_LAB_SO1_2S2026/Proyecto3
-./scripts/loadtest.sh calentamiento 200 20 60s
-
-# A: 1 réplica Go, 1 de Valkey
-./scripts/loadtest.sh a-go1-valkey1 200 20 4m
-
-# B: 2 réplicas Go, 1 de Valkey
-kubectl -n mumnk8s scale deploy go-server-deploy --replicas=2
-kubectl -n mumnk8s wait --for=condition=Ready pod -l app=go-server --timeout=120s
-sleep 90
-kubectl -n mumnk8s logs -l app=go-server -c grpc-server --tail=1 --prefix     # debe haber líneas de ambos pods
-./scripts/loadtest.sh b2-go2-valkey1 200 20 4m
-kubectl -n mumnk8s scale deploy go-server-deploy --replicas=1
-
-# C: 1 réplica Go, 2 de Valkey
-kubectl -n mumnk8s scale deploy go-server-deploy --replicas=1
-kubectl -n mumnk8s patch valkeyinstance valkey --type merge -p '{"spec":{"replicas":2}}'
-kubectl -n mumnk8s wait --for=condition=Ready pod/valkey-1 --timeout=180s
-./scripts/loadtest.sh c-go1-valkey2 200 20 4m
-
-kubectl -n mumnk8s scale deploy go-server-deploy --replicas=1
-kubectl -n mumnk8s patch valkeyinstance valkey --type merge -p '{"spec":{"replicas":1}}'
-kubectl -n mumnk8s get pods -l app=valkey        # espera a que valkey-1 desaparezca
-kubectl -n mumnk8s delete pvc data-valkey-1      # su disco quedó huérfano
