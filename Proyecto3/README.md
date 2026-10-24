@@ -147,6 +147,15 @@ deactivate
 source ~/locust-env/bin/activate
 ```
 
+Generación de carga contra el Gateway.
+```shell
+GW=$(kubectl get gateway api-gateway -n mumnk8s -o jsonpath='{.status.addresses[0].value}')
+mkdir -p /tmp/cfg && oras pull $ZOT/locust-config:v1 -o /tmp/cfg
+source ~/locust-env/bin/activate
+CONFIG_FILE=/tmp/cfg/config.json locust -f locust/locustfile.py --host http://$GW --headless -u 200 -r 20 -t 4m 2>&1 | tail -n 8
+deactivate
+kubectl get pods -n mumnk8s -l app=api-rust
+```
 ### 2.9 ORAS (para el OCI Artifact en ZOT)
 
 No se utiliza snap porque WSL puede ocasionar fallas, a pesar de que es más fácil se debe hacer de la siguiente forma.
@@ -386,7 +395,7 @@ Locust lee un archivo `config.json` con la ruta, los países y los rangos. Este 
 
 Desde la ruta principal:
 
-```shell
+```bash
 mkdir -p operator && cd operator
 operator-sdk init --plugins helm --domain mumnk8s.io --project-name mumn-operator
 operator-sdk create api --group cache --version v1alpha1 --kind ValkeyInstance
@@ -401,7 +410,7 @@ Veras **valkeyinstance** y **grafanainstance** en **helm-charts**, además de lo
 
 Ahora borra las plantillas de ejemplo que genero create api.
 
-```shell
+```bash
 rm -rf helm-charts/valkeyinstance/templates/* helm-charts/grafanainstance/templates/*
 ls helm-charts
 ```
@@ -440,7 +449,7 @@ Si falta alguno, el Operator lo dirá en sus logs con un error forbidden
 
 ### 3.16 Probamos
 Para validar ejecutamos desde operator/
-```shell
+```bash
 helm lint helm-charts/valkeyinstance
 helm lint helm-charts/grafanainstance
 helm template valkey helm-charts/valkeyinstance
@@ -457,3 +466,414 @@ Creamos la carpeta `grafana-dev/` y dentro `datasource.yaml`.
 Agregamos el servicio a `docker-compose.dev.yml`.
 
 Armamos todo el dasboard, comprobamos que los datos se ven correctamente y finalmente exportamos el dasboard y lo pegamor en la siguiente ruta `operator/helm-charts/grafanainstance/dashboards/mumn.json`.
+
+
+## 4. Infraestructura del Container Registry (ZOT)
+
+### 4.1 Preparación de GCP y creación de VM de Zot
+
+Aqui vamos a levantar Zot Registry en una máquina virtual externa (VM en GCP con tipo de instancia E2) configurado con HTTPS.
+
+```bash
+# Seleccionar el proyecto y activar las APIs
+gcloud config set project project-5fea5468-0f77-43ea-8e6
+gcloud config set compute/region us-central1
+gcloud config set compute/zone us-central1-a
+gcloud services enable compute.googleapis.com container.googleapis.com
+
+# Revisamos las cuotas para ver si tenemos espacio para crear la VM y el clúster
+gcloud compute regions describe us-central1 --format=json \
+  | jq -r '.quotas[] | select(.metric|test("^(CPUS|IN_USE_ADDRESSES|STATIC_ADDRESSES|DISKS_TOTAL_GB|SSD_TOTAL_GB)$")) | "\(.metric)\t\(.usage)/\(.limit)"'
+
+# Revisa qué existe, debido a que es una cuenta compartida. Para no repetir algún nombre.
+gcloud compute instances list
+gcloud compute addresses list
+gcloud compute firewall-rules list --format="table(name,targetTags.list())"
+gcloud container clusters list
+
+# Reservar una IP fija (para que no cambie si reinicias la VM, anote la IP del segundo comando)
+gcloud compute addresses create zot-ip --region us-central1
+
+# Abrir los puertos web (80 y 443)
+gcloud compute firewall-rules create allow-web-zot \
+  --allow tcp:80,tcp:443 --direction INGRESS --target-tags zot
+
+# Crear la VM
+gcloud compute instances create zot-vm-diego-diego \
+  --zone us-central1-a \
+  --machine-type e2-small \
+  --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud \
+  --boot-disk-size 30GB --boot-disk-type pd-standard \
+  --address zot-ip-diego --tags zot-diego \
+  --description "Zot registry Diego España 202307716"
+
+# Guardar la IP fija en una variable de entorno
+ZOT_IP=$(gcloud compute addresses describe zot-ip --region us-central1 --format='value(address)')
+echo "ZOT_IP=$ZOT_IP"
+echo "export ZOT=${ZOT_IP}.sslip.io" >> ~/.bashrc && source ~/.bashrc
+echo $ZOT
+
+# Entrar a la VM
+gcloud compute ssh zot-vm-diego --zone us-central1-a
+```
+La primera vez te pedirá crear una clave SSH (puedes dejar la contraseña vacía). Si todo sale bien, verás el prompt de la VM, algo como usuario@zot-vm-diego:~$.
+
+Si alguno de estos comandos pide habilitar una API o confirmar algo, responde que sí.
+
+Si desea detener la vm para ahorrar recuersos ejecuta: 
+
+```bash
+gcloud compute instances stop zot-vm-diego --zone us-central1-a    # apagar
+gcloud compute instances start zot-vm-diego --zone us-central1-a   # encender
+```
+
+Si se desea borrar la vm, ejecutar:
+
+```bash
+gcloud compute instances delete zot-vm-diego --zone=us-central1-a
+```
+
+- IP estática: `35.239.210.169`
+
+### 4.2 Dentro de la VM ZOT
+
+Una vez dentro de la VM ejecutar
+
+```bash
+sudo apt update && sudo apt install -y jq apache2-utils curl
+
+# Descargamos zot
+URL=$(curl -s https://api.github.com/repos/project-zot/zot/releases/latest \
+  | jq -r '.assets[] | select(.name=="zot-linux-amd64") | .browser_download_url')
+echo "$URL"
+sudo curl -L -o /usr/local/bin/zot "$URL"
+sudo chmod +x /usr/local/bin/zot
+zot --version
+
+# Usuario del servicio, carpetas y contraseña
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin zot
+sudo mkdir -p /etc/zot /var/lib/zot
+sudo htpasswd -B -c /etc/zot/htpasswd mumn
+```
+El último comando te pide la contraseña dos veces (así no queda en el historial). El usuario será mumn. Guarda esa contraseña, porque se usara en docker login y en el imagePullSecret de GKE.
+
+Configuramos el zot
+
+```bash
+sudo tee /etc/zot/config.json > /dev/null <<'EOF'
+{
+  "distSpecVersion": "1.1.0",
+  "storage": { "rootDirectory": "/var/lib/zot" },
+  "http": {
+    "address": "127.0.0.1",
+    "port": "5000",
+    "auth": { "htpasswd": { "path": "/etc/zot/htpasswd" } }
+  },
+  "log": { "level": "info" },
+  "extensions": {
+    "search": { "enable": true },
+    "ui": { "enable": true }
+  }
+}
+EOF
+sudo chown -R zot:zot /etc/zot /var/lib/zot
+sudo chmod 640 /etc/zot/htpasswd
+```
+Zot solo escucha en 127.0.0.1. Nadie de internet llega a él directamente, sino a través de Caddy con HTTPS.
+
+Servicio systemd
+
+```bash
+sudo tee /etc/systemd/system/zot.service > /dev/null <<'EOF'
+[Unit]
+Description=Zot OCI registry
+After=network.target
+
+[Service]
+User=zot
+ExecStart=/usr/local/bin/zot serve /etc/zot/config.json
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl enable --now zot
+sudo systemctl status zot --no-pager | head -n 5
+curl -i http://127.0.0.1:5000/v2/
+```
+Debes ver active (running) y que el curl devuelva 401 Unauthorized. Eso es lo correcto, porque pide credenciales.
+
+```bash
+# Instalar Caddy
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install -y caddy
+
+# Configurar Caddy
+IP=$(curl -s -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)
+printf '%s.sslip.io {\n    reverse_proxy 127.0.0.1:5000\n}\n' "$IP" | sudo tee /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+sleep 15
+curl -i https://$IP.sslip.io/v2/
+```
+### 4.3 Desde la pc
+
+Probar desde la pc
+
+```bash
+docker login $ZOT -u mumn
+curl -s -u mumn https://$ZOT/v2/_catalog; echo
+```
+
+Pasamos a la pc. Creamos un script `build-push.sh` y `mirror-imgages`, finalmente ejecutamos.
+
+```bash
+cat > scripts/build-push.sh <<'EOF'
+#!/usr/bin/env bash
+# Uso: ./scripts/build-push.sh api-rust go-api go-grpc-server go-consumer
+set -euo pipefail
+ZOT="${ZOT:?define ZOT, ej: export ZOT=1.2.3.4.sslip.io}"
+TAG="${TAG:-v1}"
+cd "$(dirname "$0")/.."
+for svc in "$@"; do
+  docker build -t "$ZOT/$svc:$TAG" "./$svc"
+  docker push "$ZOT/$svc:$TAG"
+done
+EOF
+
+cat > scripts/mirror-images.sh <<'EOF'
+#!/usr/bin/env bash
+# Copia las imágenes de terceros a Zot para que el clúster descargue todo de ahí
+set -euo pipefail
+ZOT="${ZOT:?define ZOT}"
+mirror() { docker pull "$1" && docker tag "$1" "$ZOT/$2" && docker push "$ZOT/$2"; }
+mirror rabbitmq:3-management rabbitmq:3-management
+mirror valkey/valkey:8 valkey:8
+mirror grafana/grafana:11.4.0 grafana:11.4.0
+EOF
+chmod +x scripts/*.sh
+./scripts/build-push.sh api-rust go-api go-grpc-server go-consumer
+./scripts/mirror-images.sh
+curl -s -u mumn https://$ZOT/v2/_catalog; echo
+```
+
+### 4.4 OCI Artifact
+
+```bash
+cd locust
+oras login $ZOT -u mumn
+oras push $ZOT/locust-config:v1 config.json:application/json
+mkdir -p /tmp/cfg && oras pull $ZOT/locust-config:v1 -o /tmp/cfg && cat /tmp/cfg/config.json
+cd ..
+```
+
+## 5. Creación del clúster
+
+Se usaran 2 nodos e2-standard-2.
+
+```bash
+gcloud container clusters create mumn-diego \
+  --zone us-central1-a --num-nodes 2 \
+  --machine-type e2-standard-2 \
+  --disk-type pd-standard --disk-size 35 \
+  --gateway-api=standard \
+  --async
+
+gcloud container clusters list
+```
+
+Debes ver 2 nodos Ready.
+
+```bash
+gcloud container clusters get-credentials mumn-diego --zone us-central1-a
+kubectl config current-context
+kubectl get nodes -o wide
+
+kubectl apply -f k8s/01-namespace.yaml
+
+# Clave aleatoria de RabbitMQ (hex, para que no rompa la URL)
+RMQ_PASS=$(openssl rand -hex 16)
+kubectl -n mumnk8s create secret generic rabbitmq-creds \
+  --from-literal=user=mumn --from-literal=pass=$RMQ_PASS \
+  --from-literal=url="amqp://mumn:$RMQ_PASS@rabbitmq:5672/"
+unset RMQ_PASS
+
+# Credenciales para que los nodos descarguen de Zot (la contraseña se pide sin mostrarla)
+read -rsp "Contraseña de Zot: " ZOT_PASS; echo
+kubectl -n mumnk8s create secret docker-registry zot-creds \
+  --docker-server=$ZOT --docker-username=mumn --docker-password="$ZOT_PASS"
+unset ZOT_PASS
+
+kubectl -n mumnk8s get secrets
+```
+
+Para reducir el consumo mientras no se usa el clúster, es necesario quitarle los nodos y al volverlo a usar ponerselos de nuevo.
+
+```bash
+# Apagar nodos (los pods quedan Pending; PVC, Gateway e IP se conservan)
+gcloud container clusters resize mumn-diego --node-pool default-pool --num-nodes 0 --zone us-central1-a
+
+# Volver a encender, y esperar 3 a 5 minutos
+gcloud container clusters resize mumn-diego --node-pool default-pool --num-nodes 2 --zone us-central1-a
+kubectl get pods -A
+```
+
+### 5.1 Poner Zot en YAML y desplegar
+
+```bash
+sed -i "s/ZOT_HOST/$ZOT/g" k8s/*.yaml operator/config/samples/*.yaml
+grep -rn "ZOT_HOST" k8s operator/config || echo "sin marcadores pendientes"
+grep -n "image:" k8s/*.yaml
+
+kubectl apply -f k8s/
+kubectl -n mumnk8s get pods -w
+```
+
+Espera a que todos estén Running (Ctrl+C para salir). Luego revisa el Gateway, que tarda entre 3 y 10 minutos en recibir una IP:
+
+```bash
+kubectl get gateway,httproute -n mumnk8s
+kubectl get hpa -n mumnk8s
+```
+
+Cuando ADDRESS tenga una IP y esté PROGRAMMED True:
+
+```bash
+GW=$(kubectl get gateway api-gateway -n mumnk8s -o jsonpath='{.status.addresses[0].value}')
+echo $GW
+curl -i -X POST http://$GW/grpc-202307716 -H "Content-Type: application/json" \
+  -d '{"country":"ESP","warplanes_in_air":12,"warships_in_water":7,"timestamp":"2026-10-23T08:00:00Z"}'
+kubectl logs -l app=api-rust -n mumnk8s --tail=10
+```
+
+Resultado esperado: 200 “Reporte de esp procesado”. Después verifica que llegó a Valkey:
+
+```bash
+kubectl exec -n mumnk8s deploy/valkey-temp -- valkey-cli HGETALL reports:count
+```
+
+## 5.2 Operator en GKE
+
+Dentro de la carpeta `operator/` ejecutamos lo siguiente
+
+```bash
+grep -rn "kube-rbac-proxy" config/ || echo "sin kube-rbac-proxy"
+grep -n "serviceaccounts\|statefulsets\|configmaps\|persistentvolumeclaims" config/rbac/role.yaml
+```
+
+Ajustamos el Deployment del Operator con más memoria.
+
+```bash
+sed -i 's/^\(\s*\)serviceAccountName: controller-manager/\1serviceAccountName: controller-manager\n\1imagePullSecrets:\n\1- name: zot-creds/' config/manager/manager.yaml
+sed -i 's/memory: 128Mi/memory: 512Mi/' config/manager/manager.yaml
+grep -n -B1 -A2 "imagePullSecrets" config/manager/manager.yaml
+grep -n "memory" config/manager/manager.yaml
+```
+
+Construimos, subimos y desplegamos el operator.
+
+```bash
+export IMG=$ZOT/mumn-operator:v1
+make docker-build IMG=$IMG
+make docker-push IMG=$IMG
+
+kubectl create namespace mumn-operator-system
+read -rsp "Contraseña de Zot: " ZOT_PASS; echo
+kubectl -n mumn-operator-system create secret docker-registry zot-creds \
+  --docker-server=$ZOT --docker-username=mumn --docker-password="$ZOT_PASS"
+unset ZOT_PASS
+
+make deploy IMG=$IMG
+kubectl -n mumn-operator-system get pods
+kubectl get crd | grep mumnk8s
+```
+
+Cada create api genera un chart de ejemplo en `helm-charts/<kind>/`, un CRD y un CR de muestra en `config/samples/`. Luego muestra la estructura:
+
+```bash
+ls helm-charts
+ls config/samples
+ls config/crd/bases
+```
+
+Veras **valkeyinstance** y **grafanainstance** en **helm-charts**, además de los CRD de ambos.
+
+### 5.3 Valkey y Grafana
+
+Creamos Valkey y Grafana con los CR.
+
+```bash
+kubectl apply -f config/samples/cache_v1alpha1_valkeyinstance.yaml
+
+GF_PASS=$(openssl rand -base64 12 | tr -d '/+=')
+sed "s/CAMBIA-ESTA-CLAVE/$GF_PASS/" config/samples/cache_v1alpha1_grafanainstance.yaml | kubectl apply -f -
+echo "Grafana -> usuario: admin  clave: $GF_PASS   (anótala, no la subas al repo)"
+unset GF_PASS
+
+kubectl -n mumnk8s get valkeyinstances,grafanainstances,statefulset,pods,pvc,svc
+```
+
+#### 5.3.1 Probamos
+Para validar ejecutamos desde `operator/`
+```bash
+helm lint helm-charts/valkeyinstance
+helm lint helm-charts/grafanainstance
+helm template valkey helm-charts/valkeyinstance
+helm template grafana helm-charts/grafanainstance
+```
+
+### 5.4 Desplegar el resto y probar el flujo
+
+Revisa que ya no este valkey temporal, despues ejecuta:
+
+```bash
+kubectl apply -f k8s/
+kubectl get pods -n mumnk8s
+
+# Esto se ejecuta despues
+kubectl get gateway,httproute -n mumnk8s
+```
+
+Todos los pods deben estar Running. Repite el ultimo comando hasta que el Gateway muestre una IP y PROGRAMMED True
+
+Cuando ya tengas la IP:
+
+```bash
+GW=$(kubectl get gateway api-gateway -n mumnk8s -o jsonpath='{.status.addresses[0].value}')
+curl -i -X POST http://$GW/grpc-202300580 \
+  -H "Content-Type: application/json" \
+  -d '{"country":"esp","warplanes_in_air":10,"warships_in_water":5,"timestamp":"2026-10-19T10:00:00Z"}'
+
+kubectl exec -n mumnk8s valkey-0 -- valkey-cli HGETALL reports:count
+```
+
+Esperado: 200 y esp con valor 1. Esto prueba el flujo completo con el Valkey del Operator.
+
+```bash
+kubectl get svc grafana -n mumnk8s
+```
+
+Entra a `http://<EXTERNAL-IP>`con usuario admin y la contraseña de tu CR.
+
+Si grafana no abre ejecutar lo siguiente
+
+### 5.5 Falco
+
+```bash
+helm repo add falcosecurity https://falcosecurity.github.io/charts && helm repo update
+helm upgrade --install falco falcosecurity/falco -n falco --create-namespace \
+  --version 9.2.1 -f falco/falco-values.yaml --wait --timeout 10m
+kubectl -n falco get pods
+```
+
+### 5.6 Al terminar la sesión
+
+```bash
+kubectl delete -f operator/config/samples/ --ignore-not-found
+kubectl delete pvc --all -n mumnk8s
+gcloud container clusters delete mumnk8s --zone us-central1-a
+gcloud compute instances stop zot-vm-diego --zone us-central1-a
+gcloud compute disks list
+```
