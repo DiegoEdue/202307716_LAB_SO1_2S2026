@@ -669,9 +669,9 @@ Variación respecto a A:
 - B2: Falco ya en ejecución (instalado un minuto antes) y límite de Rust de 256Mi. La sobrecarga de Falco perjudica a B2, y aun así superó a A.
 - En B2, Locust avisó de que la CPU de la máquina generadora superó el 90 %. El techo de ~250 req/s podría deberse al generador y no al sistema.
 
-![Resultados A](./img/10-locust-a.png)
-![Resultados B2](./img/10-locust-b2.png)
-![Resultados C](./img/10-locust-c.png)
+![Resultados A](./img/evidencia16.png)
+![Resultados B2](./img/evidencia17.png)
+![Resultados C](./img/evidencia18.png)
 
 
 Pruebas que fueron realizadas.
