@@ -1,0 +1,4 @@
+producto,cantidad,precio
+Laptop,5,1299.99
+Monitor,12,349.50
+Teclado,30,79.99
